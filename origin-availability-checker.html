@@ -344,8 +344,51 @@
         background: var(--blue-hover);
         color: var(--text-inverse);
       }
+      .env-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--white);
+      }
+      .env-tab {
+        flex: 1;
+        padding: 12px 16px;
+        border: none;
+        background: var(--cream);
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        border-right: 1px solid var(--border);
+      }
+      .env-tab:last-child { border-right: none; }
+      .env-tab:hover:not(:disabled) { background: rgba(38, 113, 198, 0.12); }
+      .env-tab.active {
+        background: var(--navy);
+        color: var(--text-inverse);
+      }
+      .env-tab:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .env-origin-hint {
+        margin: 0 0 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        word-break: break-all;
+      }
+      .rendition-id {
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        font-weight: 600;
+      }
       @media (max-width: 600px) {
         .advanced-grid { grid-template-columns: 1fr; }
+        .env-tab { padding: 10px 8px; font-size: 13px; }
       }
     </style>
   </head>
@@ -377,21 +420,13 @@
               type="text"
               autocomplete="off"
               spellcheck="false"
-              placeholder="z. B. TV-20260522-1800-5711.hq.mp4"
+              placeholder="z. B. TV-20260522-1800-5711"
               required
             />
           </label>
           <details class="advanced">
             <summary>Erweiterte Optionen</summary>
             <div class="advanced-grid">
-              <label class="field">
-                <span class="field-label">Progressive Qualität</span>
-                <input id="progQuality" type="text" value="hd" />
-              </label>
-              <label class="field">
-                <span class="field-label">Adaptive Renditions</span>
-                <input id="renditions" type="text" value="hd,hq" />
-              </label>
               <label class="field">
                 <span class="field-label">Sender</span>
                 <input id="broadcaster" type="text" value="ndr" />
@@ -409,14 +444,20 @@
       <section id="error" class="error-box" hidden></section>
 
       <section id="results" class="results" hidden>
+        <nav class="env-tabs" id="env-tabs" aria-label="Umgebung">
+          <button type="button" class="env-tab active" data-env="dev">Dev</button>
+          <button type="button" class="env-tab" data-env="stage">Stage</button>
+          <button type="button" class="env-tab" data-env="prod">Prod</button>
+        </nav>
+        <p id="env-origin-hint" class="env-origin-hint"></p>
         <div class="table-wrap">
           <table class="matrix">
             <thead>
               <tr>
-                <th class="format-col">Format</th>
-                <th>Dev</th>
-                <th>Stage</th>
-                <th>Prod</th>
+                <th class="format-col">Rendition</th>
+                <th>Progressive (MP4)</th>
+                <th>Adaptive HLS</th>
+                <th>Adaptive DASH</th>
               </tr>
             </thead>
             <tbody id="matrix-body"></tbody>
@@ -463,6 +504,17 @@
           { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
         ];
 
+        const RENDITIONS = [
+          { id: '1080', label: '1080', desc: 'AVC1080' },
+          { id: 'hd', label: 'hd', desc: 'AVC720' },
+          { id: 'hq', label: 'hq', desc: 'AVC540' },
+          { id: 'ln', label: 'ln', desc: 'AVC360' },
+          { id: 'mn', label: 'mn', desc: 'AVC270' },
+          { id: 'ao', label: 'ao', desc: 'Audio Only' },
+          { id: 'lo', label: 'lo', desc: 'lo' },
+          { id: 'lp', label: 'lp', desc: 'lp' },
+        ];
+
         const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
 
         function parseTvId(input) {
@@ -481,20 +533,14 @@
           };
         }
 
-        function buildUrls(origin, parsed, opts) {
-          const progQuality = (opts.progQuality || 'hd').trim();
-          const broadcaster = (opts.broadcaster || 'ndr').trim();
-          const renditions = (opts.renditions || 'hd,hq')
-            .split(',')
-            .map(function (s) { return s.trim(); })
-            .filter(Boolean)
-            .join(',');
+        function buildUrlsForRendition(origin, parsed, broadcaster, renditionId) {
           const base = parsed.base;
-          const csmil = base + '.,' + renditions + ',.mp4.csmil';
+          const prefix = broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/';
+          const csmil = base + '.,' + renditionId + ',.mp4.csmil';
           return {
-            mp4: origin + '/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + base + '.' + progQuality + '.mp4',
-            hls: origin + '/i/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + csmil + '/master.m3u8',
-            dash: origin + '/i/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + csmil + '/dash.mpd',
+            mp4: origin + '/' + prefix + base + '.' + renditionId + '.mp4',
+            hls: origin + '/i/' + prefix + csmil + '/master.m3u8',
+            dash: origin + '/i/' + prefix + csmil + '/dash.mpd',
           };
         }
 
@@ -649,44 +695,67 @@
           }
         }
 
-        async function runCheck(tvId, opts) {
+        async function runCheck(tvId, broadcaster, onProgress) {
           const parsed = parseTvId(tvId);
           if (!parsed) {
             throw new Error(
-              'Ungültige TV-ID. Erwartetes Format: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711.hq.mp4)'
+              'Ungültige TV-ID. Erwartetes Format: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711)'
             );
           }
 
+          const bc = (broadcaster || 'ndr').trim();
           await Promise.all([
             ensureLib('hls').catch(function () {}),
             ensureLib('dash').catch(function () {}),
           ]);
 
-          const environments = [];
-          for (const env of ENVIRONMENTS) {
-            const urls = buildUrls(env.origin, parsed, opts);
-            const formats = {};
-            await Promise.all(
-              FORMATS.map(async function (fmt) {
-                formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, await checkUrl(urls[fmt.id], fmt.id));
-              })
-            );
-            environments.push({
-              id: env.id,
-              name: env.name,
-              origin: env.origin,
-              formats: formats,
-            });
-          }
+          const total = ENVIRONMENTS.length * RENDITIONS.length * FORMATS.length;
+          let done = 0;
 
-          return { base: parsed.base, parsed: parsed, formats: FORMATS, environments: environments };
+          const cache = {
+            base: parsed.base,
+            parsed: parsed,
+            broadcaster: bc,
+            envs: {},
+          };
+
+          await Promise.all(
+            ENVIRONMENTS.map(async function (env) {
+              cache.envs[env.id] = {
+                name: env.name,
+                origin: env.origin,
+                renditions: {},
+              };
+
+              await Promise.all(
+                RENDITIONS.map(async function (rend) {
+                  const urls = buildUrlsForRendition(env.origin, parsed, bc, rend.id);
+                  const formats = {};
+
+                  await Promise.all(
+                    FORMATS.map(async function (fmt) {
+                      const result = await checkUrl(urls[fmt.id], fmt.id);
+                      formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, result);
+                      done += 1;
+                      if (onProgress) onProgress(done, total, env.name, rend.id);
+                    })
+                  );
+
+                  cache.envs[env.id].renditions[rend.id] = {
+                    meta: rend,
+                    formats: formats,
+                  };
+                })
+              );
+            })
+          );
+
+          return cache;
         }
 
         /* ---- UI ---- */
         const form = document.getElementById('search-form');
         const tvidInput = document.getElementById('tvid');
-        const progQualityInput = document.getElementById('progQuality');
-        const renditionsInput = document.getElementById('renditions');
         const broadcasterInput = document.getElementById('broadcaster');
         const searchBtn = document.getElementById('search-btn');
         const btnText = searchBtn.querySelector('.btn-text');
@@ -696,8 +765,24 @@
         const results = document.getElementById('results');
         const matrixBody = document.getElementById('matrix-body');
         const fileNotice = document.getElementById('file-notice');
+        const envTabs = document.getElementById('env-tabs');
+        const envOriginHint = document.getElementById('env-origin-hint');
+
+        let checkCache = null;
+        let activeEnvId = 'dev';
 
         if (location.protocol === 'file:') fileNotice.hidden = false;
+
+        envTabs.querySelectorAll('.env-tab').forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            if (!checkCache || tab.disabled) return;
+            activeEnvId = tab.getAttribute('data-env');
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
+              t.classList.toggle('active', t === tab);
+            });
+            renderResults(checkCache, activeEnvId);
+          });
+        });
 
         function setLoading(on) {
           searchBtn.disabled = on;
@@ -715,20 +800,57 @@
 
         function renderSkeleton() {
           results.hidden = false;
-          matrixBody.innerHTML = FORMATS.map(function (fmt) {
-            const cells = ENVIRONMENTS.map(function () {
+          envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
+          matrixBody.innerHTML = RENDITIONS.map(function (rend) {
+            const cells = FORMATS.map(function () {
               return '<td><div class="cell-inner"><span class="status loading">…</span></div></td>';
             }).join('');
             return (
-              '<tr><td class="format-cell"><span class="format-name">' +
-              fmt.label +
+              '<tr><td class="format-cell"><span class="format-name rendition-id">' +
+              rend.label +
               '</span><span class="format-ext">' +
-              fmt.ext +
+              rend.desc +
               '</span></td>' +
               cells +
               '</tr>'
             );
           }).join('');
+        }
+
+        function buildFormatCell(info, fmt, rend, envName) {
+          const td = document.createElement('td');
+          const inner = document.createElement('div');
+          inner.className = 'cell-inner';
+          const statusLabel = info.error
+            ? info.error
+            : 'HTTP ' + (info.status || '-') + (info.method ? ' · ' + info.method : '');
+          inner.innerHTML =
+            '<span class="status ' +
+            (info.available ? 'ok' : 'fail') +
+            '" title="' +
+            statusLabel +
+            '">' +
+            (info.available ? '✓' : '✕') +
+            '</span><span class="status-code">' +
+            statusLabel +
+            '</span>';
+
+          const playBtn = document.createElement('button');
+          playBtn.type = 'button';
+          playBtn.className = 'btn-play';
+          playBtn.innerHTML = '▶ Abspielen';
+          playBtn.disabled = !info.available;
+          playBtn.addEventListener('click', function () {
+            openPlayer(
+              fmt.id,
+              info.url,
+              rend.label + ' (' + rend.desc + ') – ' + fmt.label + ' – ' + envName
+            );
+          });
+          inner.appendChild(playBtn);
+          appendAusspielpfad(inner, info.url);
+          td.appendChild(inner);
+          return td;
         }
 
         function pathFromUrl(url) {
@@ -762,51 +884,32 @@
           container.appendChild(box);
         }
 
-        function renderResults(data) {
+        function renderResults(cache, envId) {
+          const envData = cache.envs[envId];
+          if (!envData) return;
+
+          envOriginHint.textContent = 'Origin (' + envData.name + '): ' + envData.origin;
+
           matrixBody.innerHTML = '';
-          data.formats.forEach(function (fmt) {
+          RENDITIONS.forEach(function (rend) {
+            const row = envData.renditions[rend.id];
+            if (!row) return;
+
             const tr = document.createElement('tr');
             const labelTd = document.createElement('td');
             labelTd.className = 'format-cell';
             labelTd.innerHTML =
-              '<span class="format-name">' +
-              fmt.label +
+              '<span class="format-name rendition-id">' +
+              rend.label +
               '</span><span class="format-ext">' +
-              fmt.ext +
+              rend.desc +
               '</span>';
             tr.appendChild(labelTd);
 
-            data.environments.forEach(function (env) {
-              const info = env.formats[fmt.id];
-              const td = document.createElement('td');
-              const inner = document.createElement('div');
-              inner.className = 'cell-inner';
-              const label = info.error
-                ? info.error
-                : 'HTTP ' + (info.status || '-') + (info.method ? ' · ' + info.method : '');
-              inner.innerHTML =
-                '<span class="status ' +
-                (info.available ? 'ok' : 'fail') +
-                '" title="' +
-                label +
-                '">' +
-                (info.available ? '✓' : '✕') +
-                '</span><span class="status-code">' +
-                label +
-                '</span>';
-              const playBtn = document.createElement('button');
-              playBtn.type = 'button';
-              playBtn.className = 'btn-play';
-              playBtn.innerHTML = '▶ Abspielen';
-              playBtn.disabled = !info.available;
-              playBtn.addEventListener('click', function () {
-                openPlayer(fmt.id, info.url, fmt.label + ' – ' + env.name);
-              });
-              inner.appendChild(playBtn);
-              appendAusspielpfad(inner, info.url);
-              td.appendChild(inner);
-              tr.appendChild(td);
+            FORMATS.forEach(function (fmt) {
+              tr.appendChild(buildFormatCell(row.formats[fmt.id], fmt, rend, envData.name));
             });
+
             matrixBody.appendChild(tr);
           });
         }
@@ -819,22 +922,31 @@
           setLoading(true);
           renderSkeleton();
           try {
-            const data = await runCheck(tvId, {
-              progQuality: progQualityInput.value.trim(),
-              renditions: renditionsInput.value.trim(),
-              broadcaster: broadcasterInput.value.trim(),
-            });
+            checkCache = await runCheck(
+              tvId,
+              broadcasterInput.value.trim(),
+              function (done, total, envName, rendId) {
+                btnText.textContent = 'Prüfe ' + envName + ' · ' + rendId + ' (' + done + '/' + total + ')';
+              }
+            );
             parseInfo.textContent =
               'Erkannte ID: ' +
-              data.base +
-              '  •  Pfad: /' +
-              (broadcasterInput.value.trim() || 'ndr') +
+              checkCache.base +
+              '  •  ' +
+              RENDITIONS.length +
+              ' Renditions × 3 Formate  •  Pfad: /' +
+              checkCache.broadcaster +
               '/' +
-              data.parsed.year +
+              checkCache.parsed.year +
               '/' +
-              data.parsed.monthDay +
+              checkCache.parsed.monthDay +
               '/';
-            renderResults(data);
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = false; });
+            activeEnvId = 'dev';
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
+              t.classList.toggle('active', t.getAttribute('data-env') === activeEnvId);
+            });
+            renderResults(checkCache, activeEnvId);
           } catch (err) {
             results.hidden = true;
             showError(err.message || String(err));
@@ -987,7 +1099,7 @@
           } catch (_) {}
         });
 
-        tvidInput.value = 'TV-20260522-1800-5711.hq.mp4';
+        tvidInput.value = 'TV-20260522-1800-5711';
       })();
     </script>
   </body>
