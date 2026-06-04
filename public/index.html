@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Origin Verfügbarkeits-Checker</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">●</span>
+        <div>
+          <h1>Origin Verfügbarkeits-Checker</h1>
+          <p class="subtitle">Videoinhalte über Dev / Stage / Prod prüfen</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="search-card">
+        <form id="search-form">
+          <label class="field">
+            <span class="field-label">TV-ID</span>
+            <input
+              id="tvid"
+              name="tvid"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="z. B. TV-20260522-1800-5711.hq.mp4"
+              required
+            />
+          </label>
+
+          <details class="advanced">
+            <summary>Erweiterte Optionen</summary>
+            <div class="advanced-grid">
+              <label class="field">
+                <span class="field-label">Progressive Qualität</span>
+                <input id="progQuality" type="text" value="hd" placeholder="hd" />
+              </label>
+              <label class="field">
+                <span class="field-label">Adaptive Renditions</span>
+                <input id="renditions" type="text" value="hd,hq" placeholder="hd,hq" />
+              </label>
+              <label class="field">
+                <span class="field-label">Sender</span>
+                <input id="broadcaster" type="text" value="ndr" placeholder="ndr" />
+              </label>
+            </div>
+          </details>
+
+          <button type="submit" id="search-btn" class="btn-primary">
+            <span class="btn-text">Verfügbarkeit prüfen</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </form>
+        <p id="parse-info" class="parse-info"></p>
+      </section>
+
+      <section id="error" class="error-box" hidden></section>
+
+      <section id="results" class="results" hidden>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th class="format-col">Format</th>
+                <th>Dev</th>
+                <th>Stage</th>
+                <th>Prod</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Player Modal -->
+    <div id="player-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="player-title">Wiedergabe</h2>
+          <button class="modal-close" data-close aria-label="Schließen">×</button>
+        </div>
+        <div class="player-wrap">
+          <video id="video" controls playsinline></video>
+        </div>
+        <p id="player-url" class="player-url"></p>
+        <p id="player-error" class="player-error" hidden></p>
+        <div class="modal-footer">
+          <a id="open-tab" class="btn-secondary" target="_blank" rel="noopener">In neuem Tab öffnen</a>
+          <button id="copy-url" class="btn-secondary">URL kopieren</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
