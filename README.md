@@ -10,6 +10,15 @@ Origin-Umgebungen **Dev / Stage / Prod**.
 | `main` | Node/Express-Server (empfohlen für zuverlässige HTTP-Checks) |
 | `standalone` | Eine HTML-Datei, ohne Installation – Doppelklick genügt |
 
+### Standalone (Branch `standalone`)
+
+Datei **`origin-availability-checker.html`** im Projektroot öffnen (Doppelklick oder
+„Öffnen mit“ im Browser). Kein `npm install`, kein Server nötig.
+
+Die Prüfung läuft im Browser: zuerst HTTP (`HEAD`/`GET`), bei CORS-Problemen
+Fallback über Video- bzw. HLS-/DASH-Player-Bibliotheken. Internetzugang und
+CDN-Erreichbarkeit vorausgesetzt; hls.js/dash.js werden von jsDelivr geladen.
+
 Aus einer TV-ID werden per Regex die URLs für alle drei Auslieferungsformate abgeleitet:
 
 | Format | Beschreibung | Endung |
