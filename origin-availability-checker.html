@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Origin Verfügbarkeits-Checker (Standalone)</title>
+    <title>S3-Origin Verfügbarkeitscheck 1.0</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <style>
       :root {
@@ -39,17 +39,72 @@
         z-index: 10;
         box-shadow: 0 2px 12px rgba(12, 23, 84, 0.15);
       }
-      .brand {
+      .topbar-inner {
         display: flex;
         align-items: center;
-        gap: 14px;
+        justify-content: space-between;
+        gap: 16px;
         max-width: 1000px;
         margin: 0 auto;
         padding: 16px 24px;
       }
-      .logo { font-size: 28px; color: var(--blue); line-height: 1; }
-      .brand h1 { font-size: 18px; margin: 0; color: var(--text-inverse); font-weight: 600; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+      .logo { font-size: 28px; color: var(--blue); line-height: 1; flex-shrink: 0; }
+      .brand h1 {
+        font-size: 18px;
+        margin: 0;
+        color: var(--text-inverse);
+        font-weight: 600;
+        line-height: 1.25;
+      }
       .subtitle { margin: 2px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 13px; }
+      .brand-version {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-inverse);
+        white-space: nowrap;
+        margin-left: auto;
+        text-align: right;
+        opacity: 0.92;
+      }
+      .revision-block {
+        margin-top: 48px;
+        padding: 20px 24px;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      .revision-block summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .revision-block summary:hover { color: var(--blue); }
+      .revision-content {
+        margin-top: 16px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--text);
+      }
+      .revision-content h3 {
+        margin: 18px 0 8px;
+        font-size: 14px;
+        color: var(--navy);
+      }
+      .revision-content h3:first-child { margin-top: 0; }
+      .revision-content ul { margin: 0 0 12px; padding-left: 1.25rem; }
+      .revision-content li { margin-bottom: 6px; }
+      .revision-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
       .container { max-width: 1000px; margin: 0 auto; padding: 28px 24px 80px; }
       .notice {
         margin-bottom: 20px;
@@ -424,17 +479,22 @@
       @media (max-width: 600px) {
         .advanced-grid { grid-template-columns: 1fr; }
         .env-tab { padding: 10px 8px; font-size: 13px; }
+        .topbar-inner { flex-wrap: wrap; }
+        .brand-version { width: 100%; text-align: right; margin-top: 4px; }
       }
     </style>
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <span class="logo">●</span>
-        <div>
-          <h1>Origin Verfügbarkeits-Checker</h1>
-          <p class="subtitle">Reine TV-ID · alle Qualitätsstufen · Dev / Stage / Prod</p>
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="logo">●</span>
+          <div>
+            <h1>S3-Origin Verfügbarkeitscheck</h1>
+            <p class="subtitle">(Dev / Stage / Prod)</p>
+          </div>
         </div>
+        <span class="brand-version">Version 1.0</span>
       </div>
     </header>
 
@@ -532,6 +592,50 @@
           <button id="copy-url" type="button" class="btn-secondary" disabled>URL kopieren</button>
         </div>
       </section>
+
+      <details class="revision-block">
+        <summary>Revisionshistorie</summary>
+        <div class="revision-content">
+          <p class="revision-meta"><strong>Version 1.0</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
+
+          <h3>Zweck</h3>
+          <ul>
+            <li>Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.</li>
+            <li>Unterstützung bei der Fehlersuche durch Anzeige von Ausspielpfad und vollständiger URL.</li>
+          </ul>
+
+          <h3>Eingabe</h3>
+          <ul>
+            <li>Suche über die reine TV-ID im Format <code>TV-YYYYMMDD-HHMM-NNNN</code> (ohne Qualitäts-Suffix).</li>
+            <li>Automatische Bereinigung von Suffixen (z. B. <code>.hq.mp4</code>) und Pfadanteilen aus der Eingabe.</li>
+            <li>Optionale Angabe des Senders (Standard: <code>ndr</code>).</li>
+          </ul>
+
+          <h3>Verfügbarkeitsprüfung</h3>
+          <ul>
+            <li>Automatische Abfrage aller Qualitätsstufen (Renditions): 1080, hd, hq, ln, mn, ao, lo, lp.</li>
+            <li>Drei Auslieferungsformate je Rendition: Progressive Download (MP4), Adaptive HLS (M3U8), Adaptive DASH (MPD).</li>
+            <li>URL-Ableitung per Regex aus TV-ID, Datum und Sender-Pfad (<code>/ndr/JJJJ/MMTT/</code>).</li>
+            <li>Prüfung aller drei Umgebungen beim Start; Umschaltung Dev / Stage / Prod per Tab ohne erneuten Lauf.</li>
+            <li>Kompakte Übersicht mit grünem Haken (verfügbar) und rotem Kreuz (nicht verfügbar).</li>
+            <li>HTTP-Prüfung im Browser (HEAD/GET), bei Bedarf Fallback über Video-, HLS- oder DASH-Probes.</li>
+          </ul>
+
+          <h3>Player</h3>
+          <ul>
+            <li>Separater Player-Bereich unter der Verfügbarkeitsübersicht.</li>
+            <li>Auswahl durch Klick auf eine Matrix-Zelle; Anzeige von Ausspielpfad und Status.</li>
+            <li>Wiedergabe für MP4 (nativ), HLS (hls.js / Safari nativ), DASH (dash.js).</li>
+            <li>Funktionen: Abspielen, Neu Laden, In neuem Tab öffnen, URL kopieren.</li>
+          </ul>
+
+          <h3>Technik</h3>
+          <ul>
+            <li>Einzelne HTML-Datei, plattformunabhängig (Doppelklick / Browser, ohne Node-Server).</li>
+            <li>Externe Abhängigkeit: hls.js und dash.js (jsDelivr), nur bei Bedarf geladen.</li>
+          </ul>
+        </div>
+      </details>
     </main>
 
     <script>
