@@ -191,7 +191,13 @@
       }
       .btn-play:hover:not(:disabled) { border-color: var(--accent); background: rgba(47, 129, 247, 0.1); }
       .btn-play:disabled { opacity: 0.4; cursor: not-allowed; }
-      .modal {
+      /* hidden-Attribut wird von display:flex überschrieben – Modal blockierte sonst die ganze Seite */
+      .modal[hidden] {
+        display: none !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+      }
+      .modal:not([hidden]) {
         position: fixed;
         inset: 0;
         z-index: 50;
@@ -348,8 +354,6 @@
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
     <script>
       (function () {
         'use strict';
@@ -562,6 +566,11 @@
             );
           }
 
+          await Promise.all([
+            ensureLib('hls').catch(function () {}),
+            ensureLib('dash').catch(function () {}),
+          ]);
+
           const environments = [];
           for (const env of ENVIRONMENTS) {
             const urls = buildUrls(env.origin, parsed, opts);
@@ -734,13 +743,49 @@
           playerError.hidden = false;
         }
 
-        function openPlayer(type, url, title) {
+        const CDN = {
+          hls: 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js',
+          dash: 'https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js',
+        };
+        const libLoad = { hls: null, dash: null };
+
+        function loadScript(url) {
+          return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = url;
+            s.async = true;
+            s.onload = resolve;
+            s.onerror = function () { reject(new Error('Skript nicht geladen: ' + url)); };
+            document.head.appendChild(s);
+          });
+        }
+
+        function ensureLib(kind) {
+          if (kind === 'hls') {
+            if (window.Hls) return Promise.resolve();
+            if (!libLoad.hls) libLoad.hls = loadScript(CDN.hls);
+            return libLoad.hls;
+          }
+          if (window.dashjs) return Promise.resolve();
+          if (!libLoad.dash) libLoad.dash = loadScript(CDN.dash);
+          return libLoad.dash;
+        }
+
+        async function openPlayer(type, url, title) {
           playerError.hidden = true;
           playerTitle.textContent = title;
           playerUrl.textContent = url;
           openTab.href = url;
           modal.hidden = false;
           teardownPlayer();
+
+          try {
+            if (type === 'hls') await ensureLib('hls');
+            if (type === 'dash') await ensureLib('dash');
+          } catch (e) {
+            showPlayerError(e.message || String(e));
+            return;
+          }
 
           if (type === 'mp4') {
             video.src = url;
