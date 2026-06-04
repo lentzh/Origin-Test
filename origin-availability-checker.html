@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Origin Verfügbarkeits-Checker (Standalone)</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --bg-elev: #161b22;
+        --bg-elev-2: #1c2230;
+        --border: #2a313c;
+        --text: #e6edf3;
+        --text-dim: #9aa7b4;
+        --accent: #2f81f7;
+        --accent-hover: #4f97ff;
+        --green: #2ea043;
+        --green-bg: rgba(46, 160, 67, 0.12);
+        --red: #f85149;
+        --red-bg: rgba(248, 81, 73, 0.12);
+        --warn: #d29922;
+        --warn-bg: rgba(210, 153, 34, 0.12);
+        --radius: 12px;
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 70% -10%, #1a2233 0%, var(--bg) 55%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .topbar {
+        border-bottom: 1px solid var(--border);
+        background: rgba(13, 17, 23, 0.7);
+        backdrop-filter: blur(8px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 16px 24px;
+      }
+      .logo { font-size: 28px; color: var(--accent); line-height: 1; }
+      .brand h1 { font-size: 18px; margin: 0; }
+      .subtitle { margin: 2px 0 0; color: var(--text-dim); font-size: 13px; }
+      .container { max-width: 1000px; margin: 0 auto; padding: 28px 24px 80px; }
+      .notice {
+        margin-bottom: 20px;
+        background: var(--warn-bg);
+        border: 1px solid var(--warn);
+        color: #e3b341;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .search-card {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .field { display: flex; flex-direction: column; gap: 6px; }
+      .field-label { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+      input[type="text"] {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 15px;
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.25);
+      }
+      .advanced { margin: 16px 0 4px; }
+      .advanced summary { cursor: pointer; color: var(--text-dim); font-size: 13px; }
+      .advanced-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+      .btn-primary {
+        margin-top: 18px;
+        width: 100%;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 13px 18px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .btn-primary:hover { background: var(--accent-hover); }
+      .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .parse-info {
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: var(--text-dim);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .error-box {
+        margin-top: 20px;
+        background: var(--red-bg);
+        border: 1px solid var(--red);
+        color: #ffb4b0;
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+      .results { margin-top: 28px; }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-elev);
+        box-shadow: var(--shadow);
+      }
+      .matrix { width: 100%; border-collapse: collapse; min-width: 640px; }
+      .matrix th, .matrix td { padding: 16px; text-align: center; border-bottom: 1px solid var(--border); }
+      .matrix thead th {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+        background: var(--bg-elev-2);
+      }
+      .matrix tbody tr:last-child td { border-bottom: none; }
+      .format-col { text-align: left !important; }
+      .format-cell { text-align: left; }
+      .format-name { font-weight: 600; font-size: 14px; }
+      .format-ext {
+        display: block;
+        font-size: 12px;
+        color: var(--text-dim);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        margin-top: 2px;
+      }
+      .cell-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .status.ok { background: var(--green-bg); color: var(--green); }
+      .status.fail { background: var(--red-bg); color: var(--red); }
+      .status.loading { background: var(--bg-elev-2); color: var(--text-dim); }
+      .status-code {
+        font-size: 11px;
+        color: var(--text-dim);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        max-width: 140px;
+        word-break: break-word;
+        text-align: center;
+      }
+      .btn-play {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .btn-play:hover:not(:disabled) { border-color: var(--accent); background: rgba(47, 129, 247, 0.1); }
+      .btn-play:disabled { opacity: 0.4; cursor: not-allowed; }
+      .modal {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); }
+      .modal-content {
+        position: relative;
+        width: min(900px, 100%);
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .modal-header h2 { margin: 0; font-size: 16px; }
+      .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 26px; cursor: pointer; }
+      .player-wrap { background: #000; }
+      #video { width: 100%; max-height: 60vh; display: block; }
+      .player-url {
+        margin: 0;
+        padding: 12px 20px;
+        font-size: 12px;
+        color: var(--text-dim);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        word-break: break-all;
+      }
+      .player-error {
+        margin: 0 20px 12px;
+        padding: 10px 14px;
+        background: var(--red-bg);
+        border: 1px solid var(--red);
+        border-radius: 8px;
+        color: #ffb4b0;
+        font-size: 13px;
+      }
+      .modal-footer { display: flex; gap: 12px; padding: 0 20px 18px; }
+      .btn-secondary {
+        background: var(--bg-elev-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 9px 14px;
+        font-size: 13px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      @media (max-width: 600px) {
+        .advanced-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">●</span>
+        <div>
+          <h1>Origin Verfügbarkeits-Checker</h1>
+          <p class="subtitle">Standalone · Dev / Stage / Prod · keine Installation</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <p id="file-notice" class="notice" hidden>
+        Diese Datei wurde per <code>file://</code> geöffnet. Manche Browser blockieren dann
+        Netzwerk-Prüfungen. Bei Problemen die Datei per Doppelklick in Chrome/Edge/Firefox öffnen
+        oder kurz über einen lokalen Webserver bereitstellen. Die Prüfung nutzt zuerst HTTP-Requests,
+        danach Medien-Fallbacks (Video / HLS / DASH).
+      </p>
+
+      <section class="search-card">
+        <form id="search-form">
+          <label class="field">
+            <span class="field-label">TV-ID</span>
+            <input
+              id="tvid"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="z. B. TV-20260522-1800-5711.hq.mp4"
+              required
+            />
+          </label>
+          <details class="advanced">
+            <summary>Erweiterte Optionen</summary>
+            <div class="advanced-grid">
+              <label class="field">
+                <span class="field-label">Progressive Qualität</span>
+                <input id="progQuality" type="text" value="hd" />
+              </label>
+              <label class="field">
+                <span class="field-label">Adaptive Renditions</span>
+                <input id="renditions" type="text" value="hd,hq" />
+              </label>
+              <label class="field">
+                <span class="field-label">Sender</span>
+                <input id="broadcaster" type="text" value="ndr" />
+              </label>
+            </div>
+          </details>
+          <button type="submit" id="search-btn" class="btn-primary">
+            <span class="btn-text">Verfügbarkeit prüfen</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </form>
+        <p id="parse-info" class="parse-info"></p>
+      </section>
+
+      <section id="error" class="error-box" hidden></section>
+
+      <section id="results" class="results" hidden>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th class="format-col">Format</th>
+                <th>Dev</th>
+                <th>Stage</th>
+                <th>Prod</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="player-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="player-title">Wiedergabe</h2>
+          <button class="modal-close" data-close aria-label="Schließen">×</button>
+        </div>
+        <div class="player-wrap">
+          <video id="video" controls playsinline></video>
+        </div>
+        <p id="player-url" class="player-url"></p>
+        <p id="player-error" class="player-error" hidden></p>
+        <div class="modal-footer">
+          <a id="open-tab" class="btn-secondary" target="_blank" rel="noopener">In neuem Tab öffnen</a>
+          <button id="copy-url" type="button" class="btn-secondary">URL kopieren</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        const CHECK_TIMEOUT_MS = 8000;
+
+        const ENVIRONMENTS = [
+          { id: 'dev', name: 'Dev', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de' },
+          { id: 'stage', name: 'Stage', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de' },
+          { id: 'prod', name: 'Prod', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de' },
+        ];
+
+        const FORMATS = [
+          { id: 'mp4', label: 'Progressive (MP4)', ext: '*.mp4' },
+          { id: 'hls', label: 'Adaptive HLS', ext: '*.m3u8' },
+          { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
+        ];
+
+        const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
+
+        function parseTvId(input) {
+          if (!input) return null;
+          const match = String(input).trim().match(TV_ID_REGEX);
+          if (!match) return null;
+          const [, year, month, day, time, seq] = match;
+          return {
+            base: 'TV-' + year + month + day + '-' + time + '-' + seq,
+            year,
+            month,
+            day,
+            monthDay: month + day,
+            time,
+            seq,
+          };
+        }
+
+        function buildUrls(origin, parsed, opts) {
+          const progQuality = (opts.progQuality || 'hd').trim();
+          const broadcaster = (opts.broadcaster || 'ndr').trim();
+          const renditions = (opts.renditions || 'hd,hq')
+            .split(',')
+            .map(function (s) { return s.trim(); })
+            .filter(Boolean)
+            .join(',');
+          const base = parsed.base;
+          const csmil = base + '.,' + renditions + ',.mp4.csmil';
+          return {
+            mp4: origin + '/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + base + '.' + progQuality + '.mp4',
+            hls: origin + '/i/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + csmil + '/master.m3u8',
+            dash: origin + '/i/' + broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/' + csmil + '/dash.mpd',
+          };
+        }
+
+        function withTimeout(promise, ms) {
+          return new Promise(function (resolve, reject) {
+            const t = setTimeout(function () { reject(new Error('timeout')); }, ms);
+            promise.then(
+              function (v) { clearTimeout(t); resolve(v); },
+              function (e) { clearTimeout(t); reject(e); }
+            );
+          });
+        }
+
+        async function fetchCheck(url) {
+          const tryReq = async function (method, headers) {
+            const res = await fetch(url, {
+              method: method,
+              headers: headers,
+              mode: 'cors',
+              redirect: 'follow',
+            });
+            return res;
+          };
+
+          let res = await withTimeout(tryReq('HEAD', {}), CHECK_TIMEOUT_MS);
+          if (!res.ok || res.status === 405 || res.status === 403) {
+            res = await withTimeout(tryReq('GET', { Range: 'bytes=0-0' }), CHECK_TIMEOUT_MS);
+          }
+          return {
+            available: res.status >= 200 && res.status < 400,
+            status: res.status,
+            error: null,
+            method: 'fetch',
+          };
+        }
+
+        function probeMp4(url) {
+          return new Promise(function (resolve) {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            v.muted = true;
+            const done = function (available, detail) {
+              clearTimeout(timer);
+              v.removeAttribute('src');
+              v.load();
+              resolve({
+                available: available,
+                status: available ? 200 : 0,
+                error: available ? null : detail,
+                method: 'video',
+              });
+            };
+            const timer = setTimeout(function () { done(false, 'timeout'); }, CHECK_TIMEOUT_MS);
+            v.onloadedmetadata = function () { done(true); };
+            v.onerror = function () { done(false, 'nicht abrufbar'); };
+            v.src = url;
+          });
+        }
+
+        function probeHls(url) {
+          return new Promise(function (resolve) {
+            const video = document.createElement('video');
+            video.muted = true;
+
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              const timer = setTimeout(finishFail, CHECK_TIMEOUT_MS);
+              video.onloadedmetadata = function () { clearTimeout(timer); finishOk(); };
+              video.onerror = function () { clearTimeout(timer); finishFail(); };
+              video.src = url;
+              return;
+            }
+
+            if (!window.Hls || !window.Hls.isSupported()) {
+              resolve({ available: false, status: 0, error: 'HLS nicht unterstützt', method: 'hls' });
+              return;
+            }
+
+            const hls = new window.Hls({ enableWorker: false });
+            const timer = setTimeout(function () {
+              hls.destroy();
+              finishFail();
+            }, CHECK_TIMEOUT_MS);
+
+            function finishOk() {
+              clearTimeout(timer);
+              hls.destroy();
+              resolve({ available: true, status: 200, error: null, method: 'hls.js' });
+            }
+            function finishFail() {
+              clearTimeout(timer);
+              hls.destroy();
+              resolve({ available: false, status: 0, error: 'Manifest nicht ladbar', method: 'hls.js' });
+            }
+
+            hls.on(window.Hls.Events.MANIFEST_PARSED, finishOk);
+            hls.on(window.Hls.Events.ERROR, function (_e, data) {
+              if (data.fatal) finishFail();
+            });
+            hls.loadSource(url);
+            hls.attachMedia(video);
+          });
+        }
+
+        function probeDash(url) {
+          return new Promise(function (resolve) {
+            if (!window.dashjs) {
+              resolve({ available: false, status: 0, error: 'dash.js fehlt', method: 'dash' });
+              return;
+            }
+            const video = document.createElement('video');
+            video.muted = true;
+            const player = window.dashjs.MediaPlayer().create();
+            const timer = setTimeout(function () {
+              try { player.reset(); } catch (_) {}
+              resolve({ available: false, status: 0, error: 'timeout', method: 'dash.js' });
+            }, CHECK_TIMEOUT_MS);
+
+            player.on(window.dashjs.MediaPlayer.events.STREAM_INITIALIZED, function () {
+              clearTimeout(timer);
+              try { player.reset(); } catch (_) {}
+              resolve({ available: true, status: 200, error: null, method: 'dash.js' });
+            });
+            player.on(window.dashjs.MediaPlayer.events.ERROR, function () {
+              clearTimeout(timer);
+              try { player.reset(); } catch (_) {}
+              resolve({ available: false, status: 0, error: 'MPD nicht ladbar', method: 'dash.js' });
+            });
+            try {
+              player.initialize(video, url, false);
+            } catch (e) {
+              clearTimeout(timer);
+              resolve({ available: false, status: 0, error: String(e.message || e), method: 'dash.js' });
+            }
+          });
+        }
+
+        async function checkUrl(url, formatId) {
+          try {
+            return await fetchCheck(url);
+          } catch (fetchErr) {
+            try {
+              if (formatId === 'mp4') return await probeMp4(url);
+              if (formatId === 'hls') return await probeHls(url);
+              if (formatId === 'dash') return await probeDash(url);
+            } catch (_) {}
+            return {
+              available: false,
+              status: 0,
+              error: fetchErr.message === 'timeout' ? 'timeout' : 'CORS/Netzwerk',
+              method: '—',
+            };
+          }
+        }
+
+        async function runCheck(tvId, opts) {
+          const parsed = parseTvId(tvId);
+          if (!parsed) {
+            throw new Error(
+              'Ungültige TV-ID. Erwartetes Format: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711.hq.mp4)'
+            );
+          }
+
+          const environments = [];
+          for (const env of ENVIRONMENTS) {
+            const urls = buildUrls(env.origin, parsed, opts);
+            const formats = {};
+            await Promise.all(
+              FORMATS.map(async function (fmt) {
+                formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, await checkUrl(urls[fmt.id], fmt.id));
+              })
+            );
+            environments.push({
+              id: env.id,
+              name: env.name,
+              origin: env.origin,
+              formats: formats,
+            });
+          }
+
+          return { base: parsed.base, parsed: parsed, formats: FORMATS, environments: environments };
+        }
+
+        /* ---- UI ---- */
+        const form = document.getElementById('search-form');
+        const tvidInput = document.getElementById('tvid');
+        const progQualityInput = document.getElementById('progQuality');
+        const renditionsInput = document.getElementById('renditions');
+        const broadcasterInput = document.getElementById('broadcaster');
+        const searchBtn = document.getElementById('search-btn');
+        const btnText = searchBtn.querySelector('.btn-text');
+        const spinner = searchBtn.querySelector('.spinner');
+        const parseInfo = document.getElementById('parse-info');
+        const errorBox = document.getElementById('error');
+        const results = document.getElementById('results');
+        const matrixBody = document.getElementById('matrix-body');
+        const fileNotice = document.getElementById('file-notice');
+
+        if (location.protocol === 'file:') fileNotice.hidden = false;
+
+        function setLoading(on) {
+          searchBtn.disabled = on;
+          spinner.hidden = !on;
+          btnText.textContent = on ? 'Prüfe…' : 'Verfügbarkeit prüfen';
+        }
+
+        function showError(msg) {
+          errorBox.textContent = msg;
+          errorBox.hidden = false;
+        }
+        function clearError() {
+          errorBox.hidden = true;
+        }
+
+        function renderSkeleton() {
+          results.hidden = false;
+          matrixBody.innerHTML = FORMATS.map(function (fmt) {
+            const cells = ENVIRONMENTS.map(function () {
+              return '<td><div class="cell-inner"><span class="status loading">…</span></div></td>';
+            }).join('');
+            return (
+              '<tr><td class="format-cell"><span class="format-name">' +
+              fmt.label +
+              '</span><span class="format-ext">' +
+              fmt.ext +
+              '</span></td>' +
+              cells +
+              '</tr>'
+            );
+          }).join('');
+        }
+
+        function renderResults(data) {
+          matrixBody.innerHTML = '';
+          data.formats.forEach(function (fmt) {
+            const tr = document.createElement('tr');
+            const labelTd = document.createElement('td');
+            labelTd.className = 'format-cell';
+            labelTd.innerHTML =
+              '<span class="format-name">' +
+              fmt.label +
+              '</span><span class="format-ext">' +
+              fmt.ext +
+              '</span>';
+            tr.appendChild(labelTd);
+
+            data.environments.forEach(function (env) {
+              const info = env.formats[fmt.id];
+              const td = document.createElement('td');
+              const inner = document.createElement('div');
+              inner.className = 'cell-inner';
+              const label = info.error
+                ? info.error
+                : 'HTTP ' + (info.status || '-') + (info.method ? ' · ' + info.method : '');
+              inner.innerHTML =
+                '<span class="status ' +
+                (info.available ? 'ok' : 'fail') +
+                '" title="' +
+                label +
+                '">' +
+                (info.available ? '✓' : '✕') +
+                '</span><span class="status-code">' +
+                label +
+                '</span>';
+              const playBtn = document.createElement('button');
+              playBtn.type = 'button';
+              playBtn.className = 'btn-play';
+              playBtn.innerHTML = '▶ Abspielen';
+              playBtn.disabled = !info.available;
+              playBtn.addEventListener('click', function () {
+                openPlayer(fmt.id, info.url, fmt.label + ' – ' + env.name);
+              });
+              inner.appendChild(playBtn);
+              td.appendChild(inner);
+              tr.appendChild(td);
+            });
+            matrixBody.appendChild(tr);
+          });
+        }
+
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          clearError();
+          const tvId = tvidInput.value.trim();
+          if (!tvId) return;
+          setLoading(true);
+          renderSkeleton();
+          try {
+            const data = await runCheck(tvId, {
+              progQuality: progQualityInput.value.trim(),
+              renditions: renditionsInput.value.trim(),
+              broadcaster: broadcasterInput.value.trim(),
+            });
+            parseInfo.textContent =
+              'Erkannte ID: ' +
+              data.base +
+              '  •  Pfad: /' +
+              (broadcasterInput.value.trim() || 'ndr') +
+              '/' +
+              data.parsed.year +
+              '/' +
+              data.parsed.monthDay +
+              '/';
+            renderResults(data);
+          } catch (err) {
+            results.hidden = true;
+            showError(err.message || String(err));
+          } finally {
+            setLoading(false);
+          }
+        });
+
+        /* ---- Player ---- */
+        const modal = document.getElementById('player-modal');
+        const video = document.getElementById('video');
+        const playerTitle = document.getElementById('player-title');
+        const playerUrl = document.getElementById('player-url');
+        const playerError = document.getElementById('player-error');
+        const openTab = document.getElementById('open-tab');
+        const copyUrlBtn = document.getElementById('copy-url');
+        let hlsInstance = null;
+        let dashInstance = null;
+
+        function teardownPlayer() {
+          if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+          if (dashInstance) { try { dashInstance.reset(); } catch (_) {} dashInstance = null; }
+          video.removeAttribute('src');
+          video.load();
+        }
+
+        function showPlayerError(msg) {
+          playerError.textContent = msg;
+          playerError.hidden = false;
+        }
+
+        function openPlayer(type, url, title) {
+          playerError.hidden = true;
+          playerTitle.textContent = title;
+          playerUrl.textContent = url;
+          openTab.href = url;
+          modal.hidden = false;
+          teardownPlayer();
+
+          if (type === 'mp4') {
+            video.src = url;
+            video.play().catch(function () {});
+          } else if (type === 'hls') {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = url;
+              video.play().catch(function () {});
+            } else if (window.Hls && window.Hls.isSupported()) {
+              hlsInstance = new window.Hls();
+              hlsInstance.loadSource(url);
+              hlsInstance.attachMedia(video);
+              hlsInstance.on(window.Hls.Events.ERROR, function (_e, data) {
+                if (data.fatal) showPlayerError('HLS-Fehler: ' + (data.details || data.type));
+              });
+            } else {
+              showPlayerError('HLS wird von diesem Browser nicht unterstützt.');
+            }
+          } else if (type === 'dash') {
+            if (window.dashjs) {
+              dashInstance = window.dashjs.MediaPlayer().create();
+              dashInstance.initialize(video, url, true);
+              dashInstance.on('error', function (ev) {
+                showPlayerError('DASH-Fehler: ' + (ev.error && ev.error.message ? ev.error.message : 'unbekannt'));
+              });
+            } else {
+              showPlayerError('DASH-Player nicht geladen.');
+            }
+          }
+        }
+
+        function closePlayer() {
+          modal.hidden = true;
+          teardownPlayer();
+        }
+
+        modal.addEventListener('click', function (e) {
+          if (e.target.hasAttribute('data-close')) closePlayer();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !modal.hidden) closePlayer();
+        });
+        copyUrlBtn.addEventListener('click', async function () {
+          try {
+            await navigator.clipboard.writeText(playerUrl.textContent);
+            copyUrlBtn.textContent = 'Kopiert ✓';
+            setTimeout(function () { copyUrlBtn.textContent = 'URL kopieren'; }, 1500);
+          } catch (_) {}
+        });
+
+        tvidInput.value = 'TV-20260522-1800-5711.hq.mp4';
+      })();
+    </script>
+  </body>
+</html>
