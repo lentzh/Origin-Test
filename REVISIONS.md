@@ -2,23 +2,27 @@
 
 ## Version 1.1
 
-**Stand:** Erweiterter Renditions-Katalog aus `renditions.xlsx`
+**Stand:** Renditions-Katalog **LRA NDR** aus aktualisierter `renditions.xlsx`
 
 ### Änderungen
 
-- **17 Renditions** in drei Gruppen:
-  - **AVC (H.264):** 1080, hd, hq, ln, mn, ao, lo, lp
-  - **HEVC:** WebL/WebXL/1080 SDR, 1080/1440/2160 HDR (aus Excel)
-  - **VP9:** WebL/WebXL/1080 (aus Excel, Hinweis „2024 weggefallen“)
-- Metadaten pro Rendition: Bezeichnung, Auflösung, Codec, Bemerkung, ARD-Bezeichnung (soweit in Excel)
-- URL-Bildung für zusammengesetzte Suffixe (`hq.hevc`, `1080.hdr.hevc`, `hq.vp9`, …)
-- Gruppenzeilen in der Verfügbarkeitsmatrix
+- **21 Formate** aus der Excel-Tabelle (NDR), u. a.:
+  - Audio: MP4 (nur Audio) `.ao.mp4`
+  - AVC: mn, ln, hq, hd, 1080 (+ veraltete lo, hi, lp)
+  - HEVC: SDR 540/720/1080, HDR 1080/1440/2160
+  - VP9: 540/720/1080
+  - Flash LOW/HIGH/(L): historisch, ohne prüfbare URL (Anzeige „—“)
+- **LRA-Modell:** Katalog unter `LRA_CATALOG.lras` – vorbereitet für weitere LRAs
+- **Import:** `python3 tools/import-renditions.py` liest `renditions.xlsx` und aktualisiert
+  - `lib/renditions-catalog.json`
+  - eingebetteten Katalog in `origin-availability-checker.html`
+- Metadaten je Format: Bezeichnung, Profil-Tag, Endung, Auflösung, Codec, Bemerkung
 
 ### Quelle
 
 | Datei | Beschreibung |
 | --- | --- |
-| `renditions.xlsx` | Master-Tabelle (Format, Endung, Auflösung, Codec, Bemerkung, ARD-Bezeichnung) |
+| `renditions.xlsx` | Master-Tabelle LRA NDR (Format, Profil, Endung, Auflösung, Codec, Bemerkung) |
 
 ---
 
@@ -33,30 +37,13 @@
 
 ### Eingabe
 
-- Suche über die **reine TV-ID** im Format `TV-YYYYMMDD-HHMM-NNNN` (ohne Qualitäts-Suffix)
-- Automatische Bereinigung von Suffixen und Pfadanteilen aus der Eingabe
+- Suche über die **reine TV-ID** im Format `TV-YYYYMMDD-HHMM-NNNN`
 - Optionale Angabe des **Senders** (Standard: `ndr`)
 
-### Verfügbarkeitsprüfung
+### Verfügbarkeitsprüfung & Player
 
-- Automatische Abfrage aller Qualitätsstufen je **MP4 / HLS / DASH**
-- **URL-Ableitung** per Regex aus TV-ID, Datum und Sender-Pfad (`/ndr/JJJJ/MMTT/`)
-- Umschaltung **Dev / Stage / Prod** per Tab
-- Kompakte Übersicht mit ✓ / ✕
-
-### Player
-
-- Separater Player-Bereich: Abspielen, Neu Laden, Tab öffnen, URL kopieren
-
-### Origin-URLs
-
-| Umgebung | URL |
-| --- | --- |
-| Dev | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
-| Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
-| Prod | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de` |
+- Kompakte Matrix ✓/✕, Tabs Dev/Stage/Prod, separater Player-Bereich
 
 ### Technik
 
-- Einzelne HTML-Datei, plattformunabhängig
-- hls.js / dash.js (jsDelivr), bei Bedarf geladen
+- Einzelne HTML-Datei, hls.js / dash.js bei Bedarf

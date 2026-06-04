@@ -157,6 +157,19 @@
         border-color: var(--blue);
         box-shadow: 0 0 0 3px rgba(38, 113, 198, 0.2);
       }
+      select {
+        background: var(--white);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 15px;
+      }
+      select:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(38, 113, 198, 0.2);
+      }
       .advanced { margin: 16px 0 4px; }
       .advanced summary { cursor: pointer; color: var(--text-muted); font-size: 13px; }
       .advanced summary:hover { color: var(--text); }
@@ -536,16 +549,23 @@
               required
             />
             <p class="field-hint">
-              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Qualitäts-Suffixe
-              (AVC, HEVC, VP9) werden ignoriert. Alle hinterlegten Renditions aus dem Katalog werden automatisch geprüft.
+              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Qualitäts-Suffixe werden
+              ignoriert. Alle Renditions der gewählten LRA (aktuell <strong>LRA NDR</strong>, Quelle:
+              <code>renditions.xlsx</code>) werden automatisch geprüft.
             </p>
           </label>
           <details class="advanced">
             <summary>Erweiterte Optionen</summary>
             <div class="advanced-grid">
               <label class="field">
-                <span class="field-label">Sender</span>
-                <input id="broadcaster" type="text" value="ndr" />
+                <span class="field-label">LRA</span>
+                <select id="lra">
+                  <option value="ndr" selected>LRA NDR</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">Sender (Pfad)</span>
+                <input id="broadcaster" type="text" value="ndr" readonly />
               </label>
             </div>
           </details>
@@ -614,11 +634,12 @@
         <div class="revision-content">
           <p class="revision-meta"><strong>Version 1.1</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
 
-          <h3>Version 1.1 (Renditions-Katalog)</h3>
+          <h3>Version 1.1 (Renditions-Katalog LRA NDR)</h3>
           <ul>
-            <li>Erweiterter Katalog aus <code>renditions.xlsx</code>: AVC (8) + HEVC (6) + VP9 (3) = 17 Renditions.</li>
-            <li>Gruppierte Übersicht (AVC / HEVC / VP9) mit Auflösung, Codec und Bemerkungen aus der Tabelle.</li>
-            <li>Unterstützung zusammengesetzter Datei-Suffixe (z. B. <code>.1080.hdr.hevc.mp4</code>, <code>.hq.vp9.mp4</code>).</li>
+            <li>Vollständiger Import aus <code>renditions.xlsx</code> (21 Einträge) für <strong>LRA NDR</strong>.</li>
+            <li>Katalog-Struktur pro LRA erweiterbar (<code>lib/renditions-catalog.json</code>, Import via <code>tools/import-renditions.py</code>).</li>
+            <li>Gruppen: Audio, AVC, HEVC, VP9, Flash (historisch, nicht prüfbar).</li>
+            <li>LRA-Auswahl in den erweiterten Optionen; Sender-Pfad wird aus der LRA abgeleitet.</li>
           </ul>
 
           <h3>Version 1.0 – Zweck</h3>
@@ -679,132 +700,49 @@
           { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
         ];
 
-        /**
-         * Renditions-Katalog: AVC (Origin-Standard) + HEVC/VP9 aus renditions.xlsx
-         * fileSuffix = Dateiname nach TV-ID (z. B. hq.hevc → …5711.hq.hevc.mp4)
-         */
-        const RENDITIONS = [
-          { id: '1080', group: 'AVC (H.264)', fileSuffix: '1080', label: '1080', desc: 'AVC1080', codec: 'AVC' },
-          { id: 'hd', group: 'AVC (H.264)', fileSuffix: 'hd', label: 'hd', desc: 'AVC720', codec: 'AVC' },
-          { id: 'hq', group: 'AVC (H.264)', fileSuffix: 'hq', label: 'hq', desc: 'AVC540', codec: 'AVC' },
-          { id: 'ln', group: 'AVC (H.264)', fileSuffix: 'ln', label: 'ln', desc: 'AVC360', codec: 'AVC' },
-          { id: 'mn', group: 'AVC (H.264)', fileSuffix: 'mn', label: 'mn', desc: 'AVC270', codec: 'AVC' },
-          { id: 'ao', group: 'AVC (H.264)', fileSuffix: 'ao', label: 'ao', desc: 'Audio Only', codec: 'AVC' },
-          { id: 'lo', group: 'AVC (H.264)', fileSuffix: 'lo', label: 'lo', desc: 'lo', codec: 'AVC' },
-          { id: 'lp', group: 'AVC (H.264)', fileSuffix: 'lp', label: 'lp', desc: 'lp', codec: 'AVC' },
-          {
-            id: 'hq-hevc',
-            group: 'HEVC',
-            fileSuffix: 'hq.hevc',
-            label: 'HEVC (WebL)',
-            desc: 'HEVC SDR 540',
-            resolution: '960×540',
-            codec: 'HEVC',
-            remark: 'seit Mai 2022',
-            fileExt: '.hq.hevc.mp4',
-            ard: 'HEVC SDR 540',
-          },
-          {
-            id: 'hd-hevc',
-            group: 'HEVC',
-            fileSuffix: 'hd.hevc',
-            label: 'HEVC (WebXL)',
-            desc: 'HEVC SDR 720',
-            resolution: '1280×720',
-            codec: 'HEVC',
-            remark: 'seit Mai 2022',
-            fileExt: '.hd.hevc.mp4',
-            ard: 'HEVC SDR 720',
-          },
-          {
-            id: '1080-hevc',
-            group: 'HEVC',
-            fileSuffix: '1080.hevc',
-            label: 'HEVC (Full-HD 1080p)',
-            desc: 'HEVC SDR 1080',
-            resolution: '1920×1080',
-            codec: 'HEVC',
-            remark: 'seit Mai 2022',
-            fileExt: '.1080.hevc.mp4',
-            ard: 'HEVC SDR 1080',
-          },
-          {
-            id: '1080-hdr-hevc',
-            group: 'HEVC',
-            fileSuffix: '1080.hdr.hevc',
-            label: 'HEVC-HDR (Full-HD 1080p)',
-            desc: 'HEVC HDR 1080',
-            resolution: '1920×1080',
-            codec: 'HEVC',
-            remark: 'nur bei UHD-HDR',
-            fileExt: '.1080.hdr.hevc.mp4',
-            ard: 'HEVC HDR 1080',
-          },
-          {
-            id: '1440-hdr-hevc',
-            group: 'HEVC',
-            fileSuffix: '1440.hdr.hevc',
-            label: 'HEVC-HDR (1440)',
-            desc: 'HEVC HDR 1440',
-            resolution: '2560×1440',
-            codec: 'HEVC',
-            remark: 'nur bei UHD-HDR',
-            fileExt: '.1440.hdr.hevc.mp4',
-            ard: 'HEVC HDR 1440',
-          },
-          {
-            id: '2160-hdr-hevc',
-            group: 'HEVC',
-            fileSuffix: '2160.hdr.hevc',
-            label: 'HEVC-HDR (2160)',
-            desc: 'HEVC HDR 2160',
-            resolution: '3180×2160',
-            codec: 'HEVC',
-            remark: 'nur bei UHD-HDR',
-            fileExt: '.2160.hdr.hevc.mp4',
-            ard: 'HEVC HDR 2160',
-          },
-          {
-            id: 'hq-vp9',
-            group: 'VP9',
-            fileSuffix: 'hq.vp9',
-            label: 'VP9 (WebL)',
-            desc: 'VP9 540',
-            resolution: '960×540',
-            codec: 'VP9',
-            remark: 'ab Mai 2022, 2024 weggefallen',
-            fileExt: '.hq.vp9.mp4',
-            ard: 'VP9 540',
-          },
-          {
-            id: 'hd-vp9',
-            group: 'VP9',
-            fileSuffix: 'hd.vp9',
-            label: 'VP9 (WebXL)',
-            desc: 'VP9 720',
-            resolution: '1280×720',
-            codec: 'VP9',
-            remark: 'ab Mai 2022, 2024 weggefallen',
-            fileExt: '.hd.vp9.mp4',
-            ard: 'VP9 720',
-          },
-          {
-            id: '1080-vp9',
-            group: 'VP9',
-            fileSuffix: '1080.vp9',
-            label: 'VP9 (Full-HD 1080p)',
-            desc: 'VP9 1080',
-            resolution: '1920×1080',
-            codec: 'VP9',
-            remark: 'ab Mai 2022, 2024 weggefallen',
-            fileExt: '.1080.vp9.mp4',
-            ard: 'VP9 1080',
-          },
-        ];
+        /* CATALOG_START */
+const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"ndr": {"id": "ndr", "label": "LRA NDR", "broadcaster": "ndr", "renditions": [{"id": "ao", "group": "Audio", "fileSuffix": "ao", "checkable": true, "label": "MP4 (nur Audio)", "profile": null, "desc": "Audio only", "resolution": "Audio only", "codec": null, "remark": "März 2013 bis Juni 2025", "fileExt": ".ao.mp4", "ard": null}, {"id": "avc270", "group": "AVC (H.264)", "fileSuffix": "mn", "checkable": true, "label": "MP4 (WebM niedrig)", "profile": "avc270", "desc": "avc270 · 480x270 · H.264", "resolution": "480x270", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".mn.mp4", "ard": null}, {"id": "avc360", "group": "AVC (H.264)", "fileSuffix": "ln", "checkable": true, "label": "MP4 (WebL niedrig)", "profile": "avc360", "desc": "avc360 · 640x360 · H.264", "resolution": "640x360", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".ln.mp4", "ard": null}, {"id": "avc540", "group": "AVC (H.264)", "fileSuffix": "hq", "checkable": true, "label": "MP4 (WebL)", "profile": "avc540", "desc": "avc540 · 960x540 · H.264", "resolution": "960x540", "codec": "H.264", "remark": null, "fileExt": ".hq.mp4", "ard": null}, {"id": "avc720", "group": "AVC (H.264)", "fileSuffix": "hd", "checkable": true, "label": "MP4 (WebXL)", "profile": "avc720", "desc": "avc720 · 1280x720 · H.264", "resolution": "1280x720", "codec": "H.264", "remark": "seit März 2015", "fileExt": ".hd.mp4", "ard": null}, {"id": "avc1080", "group": "AVC (H.264)", "fileSuffix": "1080", "checkable": true, "label": "MP4 (Full-HD 1080p)", "profile": "avc1080", "desc": "avc1080 · 1920x1080 · H.264", "resolution": "1920x1080", "codec": "H.264", "remark": "seit Mai 2022", "fileExt": ".1080.mp4", "ard": null}, {"id": "hevcsdr540", "group": "HEVC", "fileSuffix": "hq.hevc", "checkable": true, "label": "HEVC (WebL)", "profile": "hevcsdr540", "desc": "hevcsdr540 · 960x540 · HEVC", "resolution": "960x540", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hq.hevc.mp4", "ard": null}, {"id": "hevcsdr720", "group": "HEVC", "fileSuffix": "hd.hevc", "checkable": true, "label": "HEVC (WebXL)", "profile": "hevcsdr720", "desc": "hevcsdr720 · 1280x720 · HEVC", "resolution": "1280x720", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hd.hevc.mp4", "ard": null}, {"id": "hevcsdr1080", "group": "HEVC", "fileSuffix": "1080.hevc", "checkable": true, "label": "HEVC (Full-HD 1080p)", "profile": "hevcsdr1080", "desc": "hevcsdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".1080.hevc.mp4", "ard": null}, {"id": "hevchdr1080", "group": "HEVC", "fileSuffix": "1080.hdr.hevc", "checkable": true, "label": "HEVC-HDR (Full-HD 1080p)", "profile": "hevchdr1080", "desc": "hevchdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1080.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr1440", "group": "HEVC", "fileSuffix": "1440.hdr.hevc", "checkable": true, "label": "HEVC-HDR (1440)", "profile": "hevchdr1440", "desc": "hevchdr1440 · 2560x1440 · HEVC", "resolution": "2560x1440", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1440.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr2160", "group": "HEVC", "fileSuffix": "2160.hdr.hevc", "checkable": true, "label": "HEVC-HDR (2160)", "profile": "hevchdr2160", "desc": "hevchdr2160 · 3180x2160 · HEVC", "resolution": "3180x2160", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".2160.hdr.hevc.mp4", "ard": null}, {"id": "vp9sdr540", "group": "VP9", "fileSuffix": "hq.vp9", "checkable": true, "label": "VP9 (WebL)", "profile": "vp9sdr540", "desc": "vp9sdr540 · 960x540 · VP9", "resolution": "960x540", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hq.vp9.mp4", "ard": null}, {"id": "vp9sdr720", "group": "VP9", "fileSuffix": "hd.vp9", "checkable": true, "label": "VP9 (WebXL)", "profile": "vp9sdr720", "desc": "vp9sdr720 · 1280x720 · VP9", "resolution": "1280x720", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hd.vp9.mp4", "ard": null}, {"id": "vp9sdr1080", "group": "VP9", "fileSuffix": "1080.vp9", "checkable": true, "label": "VP9 (Full-HD 1080p)", "profile": "vp9sdr1080", "desc": "vp9sdr1080 · 1920x1080 · VP9", "resolution": "1920x1080", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".1080.vp9.mp4", "ard": null}, {"id": "lo", "group": "AVC (H.264)", "fileSuffix": "lo", "checkable": true, "label": "MP4 (WebS)", "profile": null, "desc": "320x180 · H.264", "resolution": "320x180", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lo.mp4", "ard": null}, {"id": "hi", "group": "AVC (H.264)", "fileSuffix": "hi", "checkable": true, "label": "MP4 (WebM)", "profile": null, "desc": "512x288 · H.264", "resolution": "512x288", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".hi.mp4", "ard": null}, {"id": "lp", "group": "AVC (H.264)", "fileSuffix": "lp", "checkable": true, "label": "MP4 (WebL+)", "profile": null, "desc": "720x576 · H.264", "resolution": "720x576", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lp.mp4", "ard": null}, {"id": "flash-low", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash LOW", "profile": null, "desc": "Flash LOW", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-high", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash HIGH", "profile": null, "desc": "Flash HIGH", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-l-", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash (L)", "profile": null, "desc": "Flash (L)", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}]}}};
+        /* CATALOG_END */
+
+        function getActiveLraId() {
+          return lraSelect ? lraSelect.value : 'ndr';
+        }
+
+        function getActiveLra() {
+          return (LRA_CATALOG.lras && LRA_CATALOG.lras[getActiveLraId()]) || LRA_CATALOG.lras.ndr;
+        }
+
+        function getRenditions() {
+          return getActiveLra().renditions || [];
+        }
+
+        function getBroadcaster() {
+          return getActiveLra().broadcaster || 'ndr';
+        }
+
+        function getCheckableSuffixes() {
+          return getRenditions()
+            .filter(function (r) { return r.checkable && r.fileSuffix; })
+            .map(function (r) { return r.fileSuffix; })
+            .sort(function (a, b) { return b.length - a.length; });
+        }
+
+        function initLraSelect() {
+          if (!lraSelect || !LRA_CATALOG.lras) return;
+          const current = lraSelect.value;
+          lraSelect.innerHTML = '';
+          Object.keys(LRA_CATALOG.lras).forEach(function (id) {
+            const lra = LRA_CATALOG.lras[id];
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = lra.label;
+            lraSelect.appendChild(opt);
+          });
+          if (current && LRA_CATALOG.lras[current]) lraSelect.value = current;
+          else lraSelect.value = 'ndr';
+        }
 
         const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
-        const RENDITION_FILE_SUFFIXES = RENDITIONS.map(function (r) { return r.fileSuffix; })
-          .sort(function (a, b) { return b.length - a.length; });
 
         function escapeRegex(s) {
           return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -819,7 +757,7 @@
           let prev;
           do {
             prev = s;
-            RENDITION_FILE_SUFFIXES.forEach(function (suf) {
+            getCheckableSuffixes().forEach(function (suf) {
               const end = new RegExp('\\.' + escapeRegex(suf) + '$', 'i');
               s = s.replace(end, '');
             });
@@ -829,16 +767,20 @@
 
         function renditionLabelHtml(rend) {
           let html =
-            '<span class="format-name rendition-id">' +
+            '<span class="format-name">' +
             rend.label +
             '</span><span class="format-ext">' +
             rend.desc +
-            (rend.resolution ? ' · ' + rend.resolution : '') +
+            (rend.fileExt ? ' · ' + rend.fileExt : '') +
             '</span>';
           if (rend.remark) {
             html += '<span class="format-remark">' + rend.remark + '</span>';
           }
           return html;
+        }
+
+        function naFormatResult() {
+          return { url: '', available: false, status: 0, error: 'n/a', method: '—' };
         }
 
         function appendGroupRowIfNeeded(tbody, currentGroup, newGroup) {
@@ -1047,7 +989,11 @@
             ensureLib('dash').catch(function () {}),
           ]);
 
-          const total = ENVIRONMENTS.length * RENDITIONS.length * FORMATS.length;
+          const renditions = getRenditions();
+          const checkableRends = renditions.filter(function (r) {
+            return r.checkable && r.fileSuffix;
+          });
+          const total = ENVIRONMENTS.length * checkableRends.length * FORMATS.length;
           let done = 0;
 
           const cache = {
@@ -1066,18 +1012,24 @@
               };
 
               await Promise.all(
-                RENDITIONS.map(async function (rend) {
-                  const urls = buildUrlsForRendition(env.origin, parsed, bc, rend);
+                renditions.map(async function (rend) {
                   const formats = {};
 
-                  await Promise.all(
-                    FORMATS.map(async function (fmt) {
-                      const result = await checkUrl(urls[fmt.id], fmt.id);
-                      formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, result);
-                      done += 1;
-                      if (onProgress) onProgress(done, total, env.name, rend.id);
-                    })
-                  );
+                  if (!rend.checkable || !rend.fileSuffix) {
+                    FORMATS.forEach(function (fmt) {
+                      formats[fmt.id] = naFormatResult();
+                    });
+                  } else {
+                    const urls = buildUrlsForRendition(env.origin, parsed, bc, rend);
+                    await Promise.all(
+                      FORMATS.map(async function (fmt) {
+                        const result = await checkUrl(urls[fmt.id], fmt.id);
+                        formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, result);
+                        done += 1;
+                        if (onProgress) onProgress(done, total, env.name, rend.id);
+                      })
+                    );
+                  }
 
                   cache.envs[env.id].renditions[rend.id] = {
                     meta: rend,
@@ -1094,6 +1046,7 @@
         /* ---- UI ---- */
         const form = document.getElementById('search-form');
         const tvidInput = document.getElementById('tvid');
+        const lraSelect = document.getElementById('lra');
         const broadcasterInput = document.getElementById('broadcaster');
         const searchBtn = document.getElementById('search-btn');
         const btnText = searchBtn.querySelector('.btn-text');
@@ -1122,6 +1075,23 @@
         }
 
         tvidInput.addEventListener('blur', applyNormalizedTvIdInput);
+
+        initLraSelect();
+
+        function syncLraUi() {
+          broadcasterInput.value = getBroadcaster();
+        }
+        syncLraUi();
+
+        lraSelect.addEventListener('change', function () {
+          syncLraUi();
+          if (checkCache) {
+            checkCache = null;
+            results.hidden = true;
+            playerSection.hidden = true;
+            showError('LRA gewechselt – bitte Verfügbarkeit erneut prüfen.');
+          }
+        });
 
         envTabs.querySelectorAll('.env-tab').forEach(function (tab) {
           tab.addEventListener('click', function () {
@@ -1153,7 +1123,7 @@
           playerSection.hidden = true;
           envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
           let skGroup = null;
-          RENDITIONS.forEach(function (rend) {
+          getRenditions().forEach(function (rend) {
             if (rend.group !== skGroup) {
               skGroup = rend.group;
               matrixBody.innerHTML +=
@@ -1175,15 +1145,19 @@
 
         function buildCompactCell(info, fmt, rend) {
           const td = document.createElement('td');
+          if (!rend.checkable) {
+            td.innerHTML =
+              '<span class="status fail" title="Kein prüfbares Format (historisch)">—</span>';
+            return td;
+          }
           const btn = document.createElement('button');
           btn.type = 'button';
           const isSelected =
             selectedSlot &&
             selectedSlot.rendId === rend.id &&
             selectedSlot.fmtId === fmt.id;
-          btn.className =
-            'status-slot' + (isSelected ? ' selected' : '');
-          btn.title = statusLabel(info) + '\n' + info.url;
+          btn.className = 'status-slot' + (isSelected ? ' selected' : '');
+          btn.title = statusLabel(info) + (info.url ? '\n' + info.url : '');
           btn.innerHTML =
             '<span class="status ' +
             (info.available ? 'ok' : 'fail') +
@@ -1235,7 +1209,7 @@
 
           matrixBody.innerHTML = '';
           let lastGroup = null;
-          RENDITIONS.forEach(function (rend) {
+          getRenditions().forEach(function (rend) {
             const row = envData.renditions[rend.id];
             if (!row) return;
 
@@ -1264,9 +1238,7 @@
           setLoading(true);
           renderSkeleton();
           try {
-            checkCache = await runCheck(
-              tvId,
-              broadcasterInput.value.trim(),
+            checkCache = await runCheck(tvId, getBroadcaster(),
               function (done, total, envName, rendId) {
                 btnText.textContent = 'Prüfe ' + envName + ' · ' + rendId + ' (' + done + '/' + total + ')';
               }
@@ -1275,8 +1247,10 @@
               'Erkannte ID: ' +
               checkCache.base +
               '  •  ' +
-              RENDITIONS.length +
-              ' Renditions × 3 Formate  •  Pfad: /' +
+              getActiveLra().label +
+              '  •  ' +
+              getRenditions().length +
+              ' Formate × 3 Auslieferungen  •  Pfad: /' +
               checkCache.broadcaster +
               '/' +
               checkCache.parsed.year +
