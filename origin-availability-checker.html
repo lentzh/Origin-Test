@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S3-Origin Verfügbarkeitscheck 1.0</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <style>
+      :root {
+        --navy: #0c1754;
+        --blue: #2671c6;
+        --blue-hover: #1f5da8;
+        --cream: #f1eae3;
+        --white: #ffffff;
+        --text: #0c1754;
+        --text-inverse: #ffffff;
+        --text-muted: rgba(12, 23, 84, 0.65);
+        --border: rgba(12, 23, 84, 0.15);
+        --green: #1a7f4b;
+        --green-bg: rgba(26, 127, 75, 0.12);
+        --red: #c42b2b;
+        --red-bg: rgba(196, 43, 43, 0.1);
+        --radius: 12px;
+        --shadow: 0 4px 24px rgba(12, 23, 84, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--white);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .topbar {
+        border-bottom: none;
+        background: var(--navy);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 2px 12px rgba(12, 23, 84, 0.15);
+      }
+      .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 16px 24px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+      .logo { font-size: 28px; color: var(--blue); line-height: 1; flex-shrink: 0; }
+      .brand h1 {
+        font-size: 18px;
+        margin: 0;
+        color: var(--text-inverse);
+        font-weight: 600;
+        line-height: 1.25;
+      }
+      .subtitle { margin: 2px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 13px; }
+      .brand-version {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-inverse);
+        white-space: nowrap;
+        margin-left: auto;
+        text-align: right;
+        opacity: 0.92;
+      }
+      .revision-block {
+        margin-top: 48px;
+        padding: 20px 24px;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      .revision-block summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .revision-block summary:hover { color: var(--blue); }
+      .revision-content {
+        margin-top: 16px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--text);
+      }
+      .revision-content h3 {
+        margin: 18px 0 8px;
+        font-size: 14px;
+        color: var(--navy);
+      }
+      .revision-content h3:first-child { margin-top: 0; }
+      .revision-content ul { margin: 0 0 12px; padding-left: 1.25rem; }
+      .revision-content li { margin-bottom: 6px; }
+      .revision-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .container { max-width: 1000px; margin: 0 auto; padding: 28px 24px 80px; }
+      .notice {
+        margin-bottom: 20px;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .notice code {
+        background: rgba(12, 23, 84, 0.08);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .search-card {
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .field { display: flex; flex-direction: column; gap: 6px; }
+      .field-label { font-size: 13px; color: var(--text); font-weight: 600; }
+      .field-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.45;
+        margin: 0;
+      }
+      .field-hint code {
+        font-size: 11px;
+        background: rgba(12, 23, 84, 0.06);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      input[type="text"] {
+        background: var(--white);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 15px;
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(38, 113, 198, 0.2);
+      }
+      .advanced { margin: 16px 0 4px; }
+      .advanced summary { cursor: pointer; color: var(--text-muted); font-size: 13px; }
+      .advanced summary:hover { color: var(--text); }
+      .advanced-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+      .btn-primary {
+        margin-top: 18px;
+        width: 100%;
+        background: var(--blue);
+        color: var(--text-inverse);
+        border: none;
+        border-radius: 8px;
+        padding: 13px 18px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: background 0.15s;
+      }
+      .btn-primary:hover { background: var(--blue-hover); }
+      .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: var(--text-inverse);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .parse-info {
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .error-box {
+        margin-top: 20px;
+        background: var(--red-bg);
+        border: 1px solid var(--red);
+        color: var(--red);
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+      .results { margin-top: 28px; }
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .availability-legend {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 0 0 12px;
+      }
+      .availability-legend .status {
+        width: 22px;
+        height: 22px;
+        font-size: 13px;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--white);
+        box-shadow: var(--shadow);
+      }
+      .matrix { width: 100%; border-collapse: collapse; }
+      .compact-matrix { min-width: 420px; }
+      .compact-matrix th,
+      .compact-matrix td {
+        padding: 8px 10px;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+      .compact-matrix .format-cell {
+        text-align: left;
+        white-space: nowrap;
+        padding-left: 14px;
+      }
+      .compact-matrix .format-name { font-size: 13px; }
+      .compact-matrix .format-ext { font-size: 11px; margin-top: 0; }
+      .status-slot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 44px;
+        padding: 6px 0;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.12s, box-shadow 0.12s;
+      }
+      .status-slot:hover { background: rgba(38, 113, 198, 0.1); }
+      .status-slot.selected { box-shadow: inset 0 0 0 2px var(--blue); background: rgba(38, 113, 198, 0.08); }
+      .status-slot:disabled { cursor: default; }
+      .status-slot:disabled:hover { background: transparent; }
+      .compact-matrix .status {
+        width: 28px;
+        height: 28px;
+        font-size: 15px;
+      }
+      .matrix th, .matrix td {
+        padding: 16px;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+      .matrix thead th {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-inverse);
+        background: var(--navy);
+      }
+      .matrix tbody tr:nth-child(even) td { background: rgba(241, 234, 227, 0.35); }
+      .matrix tbody tr:last-child td { border-bottom: none; }
+      .format-col { text-align: left !important; }
+      .format-cell { text-align: left; }
+      .format-name { font-weight: 600; font-size: 14px; color: var(--text); }
+      .format-ext {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        margin-top: 2px;
+      }
+      .ausspielpfad {
+        width: 100%;
+        text-align: left;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        word-break: break-all;
+      }
+      .player-panel {
+        margin-top: 32px;
+        padding: 24px;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .player-hint {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .player-meta { margin-bottom: 16px; }
+      .player-meta-title {
+        margin: 0 0 10px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .player-status-line {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .player-panel .player-wrap {
+        background: var(--navy);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+      .player-panel #video { width: 100%; max-height: 50vh; display: block; }
+      .player-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .ausspielpfad-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .ausspielpfad-path {
+        display: block;
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--text);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .ausspielpfad-url {
+        display: block;
+        margin-top: 6px;
+        font-size: 10px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        word-break: break-all;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .status.ok { background: var(--green-bg); color: var(--green); }
+      .status.fail { background: var(--red-bg); color: var(--red); }
+      .status.loading { background: var(--cream); color: var(--text-muted); }
+      .status-code {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        max-width: 140px;
+        word-break: break-word;
+        text-align: center;
+      }
+      .player-error {
+        margin: 0 0 12px;
+        padding: 10px 14px;
+        background: var(--red-bg);
+        border: 1px solid var(--red);
+        border-radius: 8px;
+        color: var(--red);
+        font-size: 13px;
+      }
+      .btn-play-action {
+        background: var(--blue);
+        border: none;
+        color: var(--text-inverse);
+      }
+      .btn-play-action:hover:not(:disabled) {
+        background: var(--blue-hover);
+        color: var(--text-inverse);
+      }
+      .btn-play-action:disabled { opacity: 0.45; cursor: not-allowed; }
+      .btn-secondary {
+        background: var(--white);
+        border: 1px solid var(--navy);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 9px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+      }
+      .btn-secondary:hover {
+        background: var(--navy);
+        color: var(--text-inverse);
+      }
+      .btn-reload {
+        background: var(--blue);
+        border: none;
+        color: var(--text-inverse);
+      }
+      .btn-reload:hover {
+        background: var(--blue-hover);
+        color: var(--text-inverse);
+      }
+      .env-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--white);
+      }
+      .env-tab {
+        flex: 1;
+        padding: 12px 16px;
+        border: none;
+        background: var(--cream);
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        border-right: 1px solid var(--border);
+      }
+      .env-tab:last-child { border-right: none; }
+      .env-tab:hover:not(:disabled) { background: rgba(38, 113, 198, 0.12); }
+      .env-tab.active {
+        background: var(--navy);
+        color: var(--text-inverse);
+      }
+      .env-tab:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .env-origin-hint {
+        margin: 0 0 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        word-break: break-all;
+      }
+      .rendition-id {
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        font-weight: 600;
+      }
+      @media (max-width: 600px) {
+        .advanced-grid { grid-template-columns: 1fr; }
+        .env-tab { padding: 10px 8px; font-size: 13px; }
+        .topbar-inner { flex-wrap: wrap; }
+        .brand-version { width: 100%; text-align: right; margin-top: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="logo">●</span>
+          <div>
+            <h1>S3-Origin Verfügbarkeitscheck</h1>
+            <p class="subtitle">(Dev / Stage / Prod)</p>
+          </div>
+        </div>
+        <span class="brand-version">Version 1.0</span>
+      </div>
+    </header>
+
+    <main class="container">
+      <p id="file-notice" class="notice" hidden>
+        Diese Datei wurde per <code>file://</code> geöffnet. Manche Browser blockieren dann
+        Netzwerk-Prüfungen. Bei Problemen die Datei per Doppelklick in Chrome/Edge/Firefox öffnen
+        oder kurz über einen lokalen Webserver bereitstellen. Die Prüfung nutzt zuerst HTTP-Requests,
+        danach Medien-Fallbacks (Video / HLS / DASH).
+      </p>
+
+      <section class="search-card">
+        <form id="search-form">
+          <label class="field">
+            <span class="field-label">TV-ID (Basis, ohne Qualität)</span>
+            <input
+              id="tvid"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="TV-20260522-1800-5711"
+              required
+            />
+            <p class="field-hint">
+              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Suffixe wie
+              <code>.hq.mp4</code> werden ignoriert. Alle Qualitätsstufen (1080, hd, hq, ln, mn, ao, lo, lp)
+              werden automatisch abgefragt.
+            </p>
+          </label>
+          <details class="advanced">
+            <summary>Erweiterte Optionen</summary>
+            <div class="advanced-grid">
+              <label class="field">
+                <span class="field-label">Sender</span>
+                <input id="broadcaster" type="text" value="ndr" />
+              </label>
+            </div>
+          </details>
+          <button type="submit" id="search-btn" class="btn-primary">
+            <span class="btn-text">Verfügbarkeit prüfen</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </form>
+        <p id="parse-info" class="parse-info"></p>
+      </section>
+
+      <section id="error" class="error-box" hidden></section>
+
+      <section id="results" class="results" hidden>
+        <h2 class="section-title">Verfügbarkeitsübersicht</h2>
+        <nav class="env-tabs" id="env-tabs" aria-label="Umgebung">
+          <button type="button" class="env-tab active" data-env="dev">Dev</button>
+          <button type="button" class="env-tab" data-env="stage">Stage</button>
+          <button type="button" class="env-tab" data-env="prod">Prod</button>
+        </nav>
+        <p id="env-origin-hint" class="env-origin-hint"></p>
+        <p class="availability-legend">
+          <span><span class="status ok">✓</span> verfügbar</span>
+          <span><span class="status fail">✕</span> nicht verfügbar</span>
+          <span>· Zelle anklicken → Player</span>
+        </p>
+        <div class="table-wrap">
+          <table class="matrix compact-matrix">
+            <thead>
+              <tr>
+                <th class="format-col">Rendition</th>
+                <th>MP4</th>
+                <th>HLS</th>
+                <th>DASH</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="player-section" class="player-panel" hidden>
+        <h2 class="section-title">Player</h2>
+        <p id="player-hint" class="player-hint">
+          Wähle in der Verfügbarkeitsübersicht eine Zelle (am besten mit grünem Haken).
+        </p>
+        <div id="player-meta" class="player-meta" hidden>
+          <h3 id="player-title" class="player-meta-title"></h3>
+          <div id="player-path-box" class="ausspielpfad"></div>
+          <p id="player-status-line" class="player-status-line"></p>
+        </div>
+        <div class="player-wrap">
+          <video id="video" controls playsinline></video>
+        </div>
+        <p id="player-error" class="player-error" hidden></p>
+        <div class="player-actions">
+          <button id="play-selection" type="button" class="btn-secondary btn-play-action" disabled>Abspielen</button>
+          <button id="reload-player" type="button" class="btn-secondary btn-reload" disabled>Neu Laden</button>
+          <a id="open-tab" class="btn-secondary" target="_blank" rel="noopener">In neuem Tab öffnen</a>
+          <button id="copy-url" type="button" class="btn-secondary" disabled>URL kopieren</button>
+        </div>
+      </section>
+
+      <details class="revision-block">
+        <summary>Revisionshistorie</summary>
+        <div class="revision-content">
+          <p class="revision-meta"><strong>Version 1.0</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
+
+          <h3>Zweck</h3>
+          <ul>
+            <li>Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.</li>
+            <li>Unterstützung bei der Fehlersuche durch Anzeige von Ausspielpfad und vollständiger URL.</li>
+          </ul>
+
+          <h3>Eingabe</h3>
+          <ul>
+            <li>Suche über die reine TV-ID im Format <code>TV-YYYYMMDD-HHMM-NNNN</code> (ohne Qualitäts-Suffix).</li>
+            <li>Automatische Bereinigung von Suffixen (z. B. <code>.hq.mp4</code>) und Pfadanteilen aus der Eingabe.</li>
+            <li>Optionale Angabe des Senders (Standard: <code>ndr</code>).</li>
+          </ul>
+
+          <h3>Verfügbarkeitsprüfung</h3>
+          <ul>
+            <li>Automatische Abfrage aller Qualitätsstufen (Renditions): 1080, hd, hq, ln, mn, ao, lo, lp.</li>
+            <li>Drei Auslieferungsformate je Rendition: Progressive Download (MP4), Adaptive HLS (M3U8), Adaptive DASH (MPD).</li>
+            <li>URL-Ableitung per Regex aus TV-ID, Datum und Sender-Pfad (<code>/ndr/JJJJ/MMTT/</code>).</li>
+            <li>Prüfung aller drei Umgebungen beim Start; Umschaltung Dev / Stage / Prod per Tab ohne erneuten Lauf.</li>
+            <li>Kompakte Übersicht mit grünem Haken (verfügbar) und rotem Kreuz (nicht verfügbar).</li>
+            <li>HTTP-Prüfung im Browser (HEAD/GET), bei Bedarf Fallback über Video-, HLS- oder DASH-Probes.</li>
+          </ul>
+
+          <h3>Player</h3>
+          <ul>
+            <li>Separater Player-Bereich unter der Verfügbarkeitsübersicht.</li>
+            <li>Auswahl durch Klick auf eine Matrix-Zelle; Anzeige von Ausspielpfad und Status.</li>
+            <li>Wiedergabe für MP4 (nativ), HLS (hls.js / Safari nativ), DASH (dash.js).</li>
+            <li>Funktionen: Abspielen, Neu Laden, In neuem Tab öffnen, URL kopieren.</li>
+          </ul>
+
+          <h3>Technik</h3>
+          <ul>
+            <li>Einzelne HTML-Datei, plattformunabhängig (Doppelklick / Browser, ohne Node-Server).</li>
+            <li>Externe Abhängigkeit: hls.js und dash.js (jsDelivr), nur bei Bedarf geladen.</li>
+          </ul>
+        </div>
+      </details>
+    </main>
+
+    <script>
+      (function () {
+        'use strict';
+
+        const CHECK_TIMEOUT_MS = 8000;
+
+        const ENVIRONMENTS = [
+          { id: 'dev', name: 'Dev', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de' },
+          { id: 'stage', name: 'Stage', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de' },
+          { id: 'prod', name: 'Prod', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de' },
+        ];
+
+        const FORMATS = [
+          { id: 'mp4', label: 'Progressive (MP4)', ext: '*.mp4' },
+          { id: 'hls', label: 'Adaptive HLS', ext: '*.m3u8' },
+          { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
+        ];
+
+        const RENDITIONS = [
+          { id: '1080', label: '1080', desc: 'AVC1080' },
+          { id: 'hd', label: 'hd', desc: 'AVC720' },
+          { id: 'hq', label: 'hq', desc: 'AVC540' },
+          { id: 'ln', label: 'ln', desc: 'AVC360' },
+          { id: 'mn', label: 'mn', desc: 'AVC270' },
+          { id: 'ao', label: 'ao', desc: 'Audio Only' },
+          { id: 'lo', label: 'lo', desc: 'lo' },
+          { id: 'lp', label: 'lp', desc: 'lp' },
+        ];
+
+        const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
+        const RENDITION_IDS = RENDITIONS.map(function (r) { return r.id; });
+
+        /** Entfernt Qualitäts-Suffixe, Dateiendungen und Pfadanteile aus der Eingabe. */
+        function normalizeTvIdInput(raw) {
+          let s = String(raw || '').trim();
+          if (!s) return '';
+          // Vollständige URL oder Pfad → nur Dateiname
+          if (s.indexOf('/') !== -1) s = s.split('/').pop();
+          s = s.replace(/\.(mp4|m3u8|mpd)$/i, '');
+          // Mehrfach anhängende Qualitäten: TV-….5711.hq.hd → TV-….5711
+          let prev;
+          do {
+            prev = s;
+            RENDITION_IDS.forEach(function (q) {
+              const end = new RegExp('\\.' + q + '$', 'i');
+              s = s.replace(end, '');
+            });
+          } while (s !== prev);
+          return s.trim();
+        }
+
+        function parseTvId(input) {
+          if (!input) return null;
+          const normalized = normalizeTvIdInput(input);
+          const match = normalized.match(TV_ID_REGEX);
+          if (!match) return null;
+          const [, year, month, day, time, seq] = match;
+          return {
+            base: 'TV-' + year + month + day + '-' + time + '-' + seq,
+            year,
+            month,
+            day,
+            monthDay: month + day,
+            time,
+            seq,
+          };
+        }
+
+        function buildUrlsForRendition(origin, parsed, broadcaster, renditionId) {
+          const base = parsed.base;
+          const prefix = broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/';
+          const csmil = base + '.,' + renditionId + ',.mp4.csmil';
+          return {
+            mp4: origin + '/' + prefix + base + '.' + renditionId + '.mp4',
+            hls: origin + '/i/' + prefix + csmil + '/master.m3u8',
+            dash: origin + '/i/' + prefix + csmil + '/dash.mpd',
+          };
+        }
+
+        function withTimeout(promise, ms) {
+          return new Promise(function (resolve, reject) {
+            const t = setTimeout(function () { reject(new Error('timeout')); }, ms);
+            promise.then(
+              function (v) { clearTimeout(t); resolve(v); },
+              function (e) { clearTimeout(t); reject(e); }
+            );
+          });
+        }
+
+        async function fetchCheck(url) {
+          const tryReq = async function (method, headers) {
+            const res = await fetch(url, {
+              method: method,
+              headers: headers,
+              mode: 'cors',
+              redirect: 'follow',
+            });
+            return res;
+          };
+
+          let res = await withTimeout(tryReq('HEAD', {}), CHECK_TIMEOUT_MS);
+          if (!res.ok || res.status === 405 || res.status === 403) {
+            res = await withTimeout(tryReq('GET', { Range: 'bytes=0-0' }), CHECK_TIMEOUT_MS);
+          }
+          return {
+            available: res.status >= 200 && res.status < 400,
+            status: res.status,
+            error: null,
+            method: 'fetch',
+          };
+        }
+
+        function probeMp4(url) {
+          return new Promise(function (resolve) {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            v.muted = true;
+            const done = function (available, detail) {
+              clearTimeout(timer);
+              v.removeAttribute('src');
+              v.load();
+              resolve({
+                available: available,
+                status: available ? 200 : 0,
+                error: available ? null : detail,
+                method: 'video',
+              });
+            };
+            const timer = setTimeout(function () { done(false, 'timeout'); }, CHECK_TIMEOUT_MS);
+            v.onloadedmetadata = function () { done(true); };
+            v.onerror = function () { done(false, 'nicht abrufbar'); };
+            v.src = url;
+          });
+        }
+
+        function probeHls(url) {
+          return new Promise(function (resolve) {
+            const video = document.createElement('video');
+            video.muted = true;
+
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              const timer = setTimeout(finishFail, CHECK_TIMEOUT_MS);
+              video.onloadedmetadata = function () { clearTimeout(timer); finishOk(); };
+              video.onerror = function () { clearTimeout(timer); finishFail(); };
+              video.src = url;
+              return;
+            }
+
+            if (!window.Hls || !window.Hls.isSupported()) {
+              resolve({ available: false, status: 0, error: 'HLS nicht unterstützt', method: 'hls' });
+              return;
+            }
+
+            const hls = new window.Hls({ enableWorker: false });
+            const timer = setTimeout(function () {
+              hls.destroy();
+              finishFail();
+            }, CHECK_TIMEOUT_MS);
+
+            function finishOk() {
+              clearTimeout(timer);
+              hls.destroy();
+              resolve({ available: true, status: 200, error: null, method: 'hls.js' });
+            }
+            function finishFail() {
+              clearTimeout(timer);
+              hls.destroy();
+              resolve({ available: false, status: 0, error: 'Manifest nicht ladbar', method: 'hls.js' });
+            }
+
+            hls.on(window.Hls.Events.MANIFEST_PARSED, finishOk);
+            hls.on(window.Hls.Events.ERROR, function (_e, data) {
+              if (data.fatal) finishFail();
+            });
+            hls.loadSource(url);
+            hls.attachMedia(video);
+          });
+        }
+
+        function probeDash(url) {
+          return new Promise(function (resolve) {
+            if (!window.dashjs) {
+              resolve({ available: false, status: 0, error: 'dash.js fehlt', method: 'dash' });
+              return;
+            }
+            const video = document.createElement('video');
+            video.muted = true;
+            const player = window.dashjs.MediaPlayer().create();
+            const timer = setTimeout(function () {
+              try { player.reset(); } catch (_) {}
+              resolve({ available: false, status: 0, error: 'timeout', method: 'dash.js' });
+            }, CHECK_TIMEOUT_MS);
+
+            player.on(window.dashjs.MediaPlayer.events.STREAM_INITIALIZED, function () {
+              clearTimeout(timer);
+              try { player.reset(); } catch (_) {}
+              resolve({ available: true, status: 200, error: null, method: 'dash.js' });
+            });
+            player.on(window.dashjs.MediaPlayer.events.ERROR, function () {
+              clearTimeout(timer);
+              try { player.reset(); } catch (_) {}
+              resolve({ available: false, status: 0, error: 'MPD nicht ladbar', method: 'dash.js' });
+            });
+            try {
+              player.initialize(video, url, false);
+            } catch (e) {
+              clearTimeout(timer);
+              resolve({ available: false, status: 0, error: String(e.message || e), method: 'dash.js' });
+            }
+          });
+        }
+
+        async function checkUrl(url, formatId) {
+          try {
+            return await fetchCheck(url);
+          } catch (fetchErr) {
+            try {
+              if (formatId === 'mp4') return await probeMp4(url);
+              if (formatId === 'hls') return await probeHls(url);
+              if (formatId === 'dash') return await probeDash(url);
+            } catch (_) {}
+            return {
+              available: false,
+              status: 0,
+              error: fetchErr.message === 'timeout' ? 'timeout' : 'CORS/Netzwerk',
+              method: '—',
+            };
+          }
+        }
+
+        async function runCheck(tvId, broadcaster, onProgress) {
+          const parsed = parseTvId(tvId);
+          if (!parsed) {
+            throw new Error(
+              'Ungültige TV-ID. Erwartetes Format: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711)'
+            );
+          }
+
+          const bc = (broadcaster || 'ndr').trim();
+          await Promise.all([
+            ensureLib('hls').catch(function () {}),
+            ensureLib('dash').catch(function () {}),
+          ]);
+
+          const total = ENVIRONMENTS.length * RENDITIONS.length * FORMATS.length;
+          let done = 0;
+
+          const cache = {
+            base: parsed.base,
+            parsed: parsed,
+            broadcaster: bc,
+            envs: {},
+          };
+
+          await Promise.all(
+            ENVIRONMENTS.map(async function (env) {
+              cache.envs[env.id] = {
+                name: env.name,
+                origin: env.origin,
+                renditions: {},
+              };
+
+              await Promise.all(
+                RENDITIONS.map(async function (rend) {
+                  const urls = buildUrlsForRendition(env.origin, parsed, bc, rend.id);
+                  const formats = {};
+
+                  await Promise.all(
+                    FORMATS.map(async function (fmt) {
+                      const result = await checkUrl(urls[fmt.id], fmt.id);
+                      formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, result);
+                      done += 1;
+                      if (onProgress) onProgress(done, total, env.name, rend.id);
+                    })
+                  );
+
+                  cache.envs[env.id].renditions[rend.id] = {
+                    meta: rend,
+                    formats: formats,
+                  };
+                })
+              );
+            })
+          );
+
+          return cache;
+        }
+
+        /* ---- UI ---- */
+        const form = document.getElementById('search-form');
+        const tvidInput = document.getElementById('tvid');
+        const broadcasterInput = document.getElementById('broadcaster');
+        const searchBtn = document.getElementById('search-btn');
+        const btnText = searchBtn.querySelector('.btn-text');
+        const spinner = searchBtn.querySelector('.spinner');
+        const parseInfo = document.getElementById('parse-info');
+        const errorBox = document.getElementById('error');
+        const results = document.getElementById('results');
+        const matrixBody = document.getElementById('matrix-body');
+        const fileNotice = document.getElementById('file-notice');
+        const envTabs = document.getElementById('env-tabs');
+        const envOriginHint = document.getElementById('env-origin-hint');
+        const playerSection = document.getElementById('player-section');
+        const playerHint = document.getElementById('player-hint');
+        const playerMeta = document.getElementById('player-meta');
+        const playerPathBox = document.getElementById('player-path-box');
+
+        let checkCache = null;
+        let activeEnvId = 'dev';
+        let selectedSlot = null;
+
+        if (location.protocol === 'file:') fileNotice.hidden = false;
+
+        function applyNormalizedTvIdInput() {
+          const parsed = parseTvId(tvidInput.value);
+          if (parsed) tvidInput.value = parsed.base;
+        }
+
+        tvidInput.addEventListener('blur', applyNormalizedTvIdInput);
+
+        envTabs.querySelectorAll('.env-tab').forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            if (!checkCache || tab.disabled) return;
+            activeEnvId = tab.getAttribute('data-env');
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
+              t.classList.toggle('active', t === tab);
+            });
+            renderResults(checkCache, activeEnvId);
+          });
+        });
+
+        function setLoading(on) {
+          searchBtn.disabled = on;
+          spinner.hidden = !on;
+          btnText.textContent = on ? 'Prüfe…' : 'Verfügbarkeit prüfen';
+        }
+
+        function showError(msg) {
+          errorBox.textContent = msg;
+          errorBox.hidden = false;
+        }
+        function clearError() {
+          errorBox.hidden = true;
+        }
+
+        function renderSkeleton() {
+          results.hidden = false;
+          playerSection.hidden = true;
+          envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
+          matrixBody.innerHTML = RENDITIONS.map(function (rend) {
+            const cells = FORMATS.map(function () {
+              return '<td><span class="status loading">…</span></td>';
+            }).join('');
+            return (
+              '<tr><td class="format-cell"><span class="format-name rendition-id">' +
+              rend.label +
+              '</span><span class="format-ext">' +
+              rend.desc +
+              '</span></td>' +
+              cells +
+              '</tr>'
+            );
+          }).join('');
+        }
+
+        function statusLabel(info) {
+          return info.error
+            ? info.error
+            : 'HTTP ' + (info.status || '-') + (info.method ? ' · ' + info.method : '');
+        }
+
+        function buildCompactCell(info, fmt, rend) {
+          const td = document.createElement('td');
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSelected =
+            selectedSlot &&
+            selectedSlot.rendId === rend.id &&
+            selectedSlot.fmtId === fmt.id;
+          btn.className =
+            'status-slot' + (isSelected ? ' selected' : '');
+          btn.title = statusLabel(info) + '\n' + info.url;
+          btn.innerHTML =
+            '<span class="status ' +
+            (info.available ? 'ok' : 'fail') +
+            '">' +
+            (info.available ? '✓' : '✕') +
+            '</span>';
+          btn.addEventListener('click', function () {
+            selectedSlot = { rendId: rend.id, fmtId: fmt.id };
+            renderResults(checkCache, activeEnvId);
+            selectForPlayer(rend, fmt, info);
+          });
+          td.appendChild(btn);
+          return td;
+        }
+
+        function pathFromUrl(url) {
+          try {
+            return new URL(url).pathname;
+          } catch (_) {
+            return url;
+          }
+        }
+
+        function renderAusspielpfad(container, url) {
+          container.innerHTML = '';
+          container.title = url;
+
+          const label = document.createElement('span');
+          label.className = 'ausspielpfad-label';
+          label.textContent = 'Ausspielpfad';
+          container.appendChild(label);
+
+          const path = document.createElement('code');
+          path.className = 'ausspielpfad-path';
+          path.textContent = pathFromUrl(url);
+          container.appendChild(path);
+
+          const full = document.createElement('span');
+          full.className = 'ausspielpfad-url';
+          full.textContent = url;
+          container.appendChild(full);
+        }
+
+        function renderResults(cache, envId) {
+          const envData = cache.envs[envId];
+          if (!envData) return;
+
+          envOriginHint.textContent = 'Origin (' + envData.name + '): ' + envData.origin;
+
+          matrixBody.innerHTML = '';
+          RENDITIONS.forEach(function (rend) {
+            const row = envData.renditions[rend.id];
+            if (!row) return;
+
+            const tr = document.createElement('tr');
+            const labelTd = document.createElement('td');
+            labelTd.className = 'format-cell';
+            labelTd.innerHTML =
+              '<span class="format-name rendition-id">' +
+              rend.label +
+              '</span><span class="format-ext">' +
+              rend.desc +
+              '</span>';
+            tr.appendChild(labelTd);
+
+            FORMATS.forEach(function (fmt) {
+              tr.appendChild(buildCompactCell(row.formats[fmt.id], fmt, rend));
+            });
+
+            matrixBody.appendChild(tr);
+          });
+        }
+
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          clearError();
+          applyNormalizedTvIdInput();
+          const tvId = tvidInput.value.trim();
+          if (!tvId) return;
+          setLoading(true);
+          renderSkeleton();
+          try {
+            checkCache = await runCheck(
+              tvId,
+              broadcasterInput.value.trim(),
+              function (done, total, envName, rendId) {
+                btnText.textContent = 'Prüfe ' + envName + ' · ' + rendId + ' (' + done + '/' + total + ')';
+              }
+            );
+            parseInfo.textContent =
+              'Erkannte ID: ' +
+              checkCache.base +
+              '  •  ' +
+              RENDITIONS.length +
+              ' Renditions × 3 Formate  •  Pfad: /' +
+              checkCache.broadcaster +
+              '/' +
+              checkCache.parsed.year +
+              '/' +
+              checkCache.parsed.monthDay +
+              '/';
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = false; });
+            activeEnvId = 'dev';
+            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
+              t.classList.toggle('active', t.getAttribute('data-env') === activeEnvId);
+            });
+            playerSection.hidden = false;
+            playerHint.hidden = false;
+            playerMeta.hidden = true;
+            selectedSlot = null;
+            renderResults(checkCache, activeEnvId);
+          } catch (err) {
+            results.hidden = true;
+            playerSection.hidden = true;
+            showError(err.message || String(err));
+          } finally {
+            setLoading(false);
+          }
+        });
+
+        /* ---- Player ---- */
+        const video = document.getElementById('video');
+        const playerTitle = document.getElementById('player-title');
+        const playerStatusLine = document.getElementById('player-status-line');
+        const playerError = document.getElementById('player-error');
+        const openTab = document.getElementById('open-tab');
+        const copyUrlBtn = document.getElementById('copy-url');
+        const reloadPlayerBtn = document.getElementById('reload-player');
+        const playSelectionBtn = document.getElementById('play-selection');
+        let hlsInstance = null;
+        let dashInstance = null;
+        let playerState = { type: null, url: null, title: null, available: false };
+
+        function selectForPlayer(rend, fmt, info) {
+          const envData = checkCache.envs[activeEnvId];
+          const title =
+            rend.label +
+            ' (' +
+            rend.desc +
+            ') – ' +
+            fmt.label +
+            ' – ' +
+            envData.name;
+
+          playerHint.hidden = true;
+          playerMeta.hidden = false;
+          playerTitle.textContent = title;
+          renderAusspielpfad(playerPathBox, info.url);
+          playerStatusLine.textContent = (info.available ? 'Verfügbar · ' : 'Nicht verfügbar · ') + statusLabel(info);
+
+          playerState = {
+            type: fmt.id,
+            url: info.url,
+            title: title,
+            available: info.available,
+          };
+
+          openTab.href = info.url;
+          copyUrlBtn.disabled = false;
+          reloadPlayerBtn.disabled = !info.available;
+          playSelectionBtn.disabled = !info.available;
+
+          playerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          if (info.available) {
+            openPlayer(fmt.id, info.url, title);
+          } else {
+            teardownPlayer();
+            showPlayerError('Diese Variante ist nicht verfügbar (✕). Ausspielpfad siehe oben.');
+          }
+        }
+
+        function teardownPlayer() {
+          if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+          if (dashInstance) { try { dashInstance.reset(); } catch (_) {} dashInstance = null; }
+          video.removeAttribute('src');
+          video.load();
+        }
+
+        function showPlayerError(msg) {
+          playerError.textContent = msg;
+          playerError.hidden = false;
+        }
+
+        const CDN = {
+          hls: 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js',
+          dash: 'https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js',
+        };
+        const libLoad = { hls: null, dash: null };
+
+        function loadScript(url) {
+          return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = url;
+            s.async = true;
+            s.onload = resolve;
+            s.onerror = function () { reject(new Error('Skript nicht geladen: ' + url)); };
+            document.head.appendChild(s);
+          });
+        }
+
+        function ensureLib(kind) {
+          if (kind === 'hls') {
+            if (window.Hls) return Promise.resolve();
+            if (!libLoad.hls) libLoad.hls = loadScript(CDN.hls);
+            return libLoad.hls;
+          }
+          if (window.dashjs) return Promise.resolve();
+          if (!libLoad.dash) libLoad.dash = loadScript(CDN.dash);
+          return libLoad.dash;
+        }
+
+        async function startPlayback(type, url) {
+          teardownPlayer();
+          playerError.hidden = true;
+
+          if (type === 'mp4') {
+            video.src = url;
+            video.load();
+            video.play().catch(function () {});
+          } else if (type === 'hls') {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = url;
+              video.load();
+              video.play().catch(function () {});
+            } else if (window.Hls && window.Hls.isSupported()) {
+              hlsInstance = new window.Hls();
+              hlsInstance.loadSource(url);
+              hlsInstance.attachMedia(video);
+              hlsInstance.on(window.Hls.Events.ERROR, function (_e, data) {
+                if (data.fatal) showPlayerError('HLS-Fehler: ' + (data.details || data.type));
+              });
+            } else {
+              showPlayerError('HLS wird von diesem Browser nicht unterstützt.');
+            }
+          } else if (type === 'dash') {
+            if (window.dashjs) {
+              dashInstance = window.dashjs.MediaPlayer().create();
+              dashInstance.initialize(video, url, true);
+              dashInstance.on('error', function (ev) {
+                showPlayerError('DASH-Fehler: ' + (ev.error && ev.error.message ? ev.error.message : 'unbekannt'));
+              });
+            } else {
+              showPlayerError('DASH-Player nicht geladen.');
+            }
+          }
+        }
+
+        async function openPlayer(type, url, title) {
+          if (title) playerTitle.textContent = title;
+          playerState.type = type;
+          playerState.url = url;
+          playerState.title = title || playerState.title;
+          playerState.available = true;
+          openTab.href = url;
+          playSelectionBtn.disabled = false;
+          reloadPlayerBtn.disabled = false;
+
+          try {
+            if (type === 'hls') await ensureLib('hls');
+            if (type === 'dash') await ensureLib('dash');
+          } catch (e) {
+            showPlayerError(e.message || String(e));
+            return;
+          }
+
+          await startPlayback(type, url);
+        }
+
+        async function reloadPlayer() {
+          if (!playerState.type || !playerState.url) return;
+          reloadPlayerBtn.disabled = true;
+          try {
+            if (playerState.type === 'hls') await ensureLib('hls');
+            if (playerState.type === 'dash') await ensureLib('dash');
+            await startPlayback(playerState.type, playerState.url);
+          } catch (e) {
+            showPlayerError(e.message || String(e));
+          } finally {
+            reloadPlayerBtn.disabled = false;
+          }
+        }
+
+        playSelectionBtn.addEventListener('click', function () {
+          if (!playerState.available || !playerState.url) return;
+          openPlayer(playerState.type, playerState.url, playerState.title);
+        });
+        reloadPlayerBtn.addEventListener('click', function () {
+          reloadPlayer();
+        });
+        copyUrlBtn.addEventListener('click', async function () {
+          if (!playerState.url) return;
+          try {
+            await navigator.clipboard.writeText(playerState.url);
+            copyUrlBtn.textContent = 'Kopiert ✓';
+            setTimeout(function () { copyUrlBtn.textContent = 'URL kopieren'; }, 1500);
+          } catch (_) {}
+        });
+
+        tvidInput.value = 'TV-20260522-1800-5711';
+      })();
+    </script>
+  </body>
+</html>
