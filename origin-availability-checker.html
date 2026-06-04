@@ -76,6 +76,18 @@
       }
       .field { display: flex; flex-direction: column; gap: 6px; }
       .field-label { font-size: 13px; color: var(--text); font-weight: 600; }
+      .field-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.45;
+        margin: 0;
+      }
+      .field-hint code {
+        font-size: 11px;
+        background: rgba(12, 23, 84, 0.06);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
       input[type="text"] {
         background: var(--white);
         border: 1px solid var(--border);
@@ -398,7 +410,7 @@
         <span class="logo">●</span>
         <div>
           <h1>Origin Verfügbarkeits-Checker</h1>
-          <p class="subtitle">Standalone · Dev / Stage / Prod · keine Installation</p>
+          <p class="subtitle">Reine TV-ID · alle Qualitätsstufen · Dev / Stage / Prod</p>
         </div>
       </div>
     </header>
@@ -414,15 +426,20 @@
       <section class="search-card">
         <form id="search-form">
           <label class="field">
-            <span class="field-label">TV-ID</span>
+            <span class="field-label">TV-ID (Basis, ohne Qualität)</span>
             <input
               id="tvid"
               type="text"
               autocomplete="off"
               spellcheck="false"
-              placeholder="z. B. TV-20260522-1800-5711"
+              placeholder="TV-20260522-1800-5711"
               required
             />
+            <p class="field-hint">
+              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Suffixe wie
+              <code>.hq.mp4</code> werden ignoriert. Alle Qualitätsstufen (1080, hd, hq, ln, mn, ao, lo, lp)
+              werden automatisch abgefragt.
+            </p>
           </label>
           <details class="advanced">
             <summary>Erweiterte Optionen</summary>
@@ -516,10 +533,31 @@
         ];
 
         const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
+        const RENDITION_IDS = RENDITIONS.map(function (r) { return r.id; });
+
+        /** Entfernt Qualitäts-Suffixe, Dateiendungen und Pfadanteile aus der Eingabe. */
+        function normalizeTvIdInput(raw) {
+          let s = String(raw || '').trim();
+          if (!s) return '';
+          // Vollständige URL oder Pfad → nur Dateiname
+          if (s.indexOf('/') !== -1) s = s.split('/').pop();
+          s = s.replace(/\.(mp4|m3u8|mpd)$/i, '');
+          // Mehrfach anhängende Qualitäten: TV-….5711.hq.hd → TV-….5711
+          let prev;
+          do {
+            prev = s;
+            RENDITION_IDS.forEach(function (q) {
+              const end = new RegExp('\\.' + q + '$', 'i');
+              s = s.replace(end, '');
+            });
+          } while (s !== prev);
+          return s.trim();
+        }
 
         function parseTvId(input) {
           if (!input) return null;
-          const match = String(input).trim().match(TV_ID_REGEX);
+          const normalized = normalizeTvIdInput(input);
+          const match = normalized.match(TV_ID_REGEX);
           if (!match) return null;
           const [, year, month, day, time, seq] = match;
           return {
@@ -773,6 +811,13 @@
 
         if (location.protocol === 'file:') fileNotice.hidden = false;
 
+        function applyNormalizedTvIdInput() {
+          const parsed = parseTvId(tvidInput.value);
+          if (parsed) tvidInput.value = parsed.base;
+        }
+
+        tvidInput.addEventListener('blur', applyNormalizedTvIdInput);
+
         envTabs.querySelectorAll('.env-tab').forEach(function (tab) {
           tab.addEventListener('click', function () {
             if (!checkCache || tab.disabled) return;
@@ -917,6 +962,7 @@
         form.addEventListener('submit', async function (e) {
           e.preventDefault();
           clearError();
+          applyNormalizedTvIdInput();
           const tvId = tvidInput.value.trim();
           if (!tvId) return;
           setLoading(true);
