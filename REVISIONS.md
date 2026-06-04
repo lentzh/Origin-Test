@@ -1,8 +1,30 @@
 # Revisionshistorie – S3-Origin Verfügbarkeitscheck
 
+## Version 1.1
+
+**Stand:** Erweiterter Renditions-Katalog aus `renditions.xlsx`
+
+### Änderungen
+
+- **17 Renditions** in drei Gruppen:
+  - **AVC (H.264):** 1080, hd, hq, ln, mn, ao, lo, lp
+  - **HEVC:** WebL/WebXL/1080 SDR, 1080/1440/2160 HDR (aus Excel)
+  - **VP9:** WebL/WebXL/1080 (aus Excel, Hinweis „2024 weggefallen“)
+- Metadaten pro Rendition: Bezeichnung, Auflösung, Codec, Bemerkung, ARD-Bezeichnung (soweit in Excel)
+- URL-Bildung für zusammengesetzte Suffixe (`hq.hevc`, `1080.hdr.hevc`, `hq.vp9`, …)
+- Gruppenzeilen in der Verfügbarkeitsmatrix
+
+### Quelle
+
+| Datei | Beschreibung |
+| --- | --- |
+| `renditions.xlsx` | Master-Tabelle (Format, Endung, Auflösung, Codec, Bemerkung, ARD-Bezeichnung) |
+
+---
+
 ## Version 1.0
 
-**Stand:** Erste freigegebene Standalone-Version (`origin-availability-checker.html` auf Branch `standalone`)
+**Stand:** Erste freigegebene Standalone-Version (`origin-availability-checker.html`)
 
 ### Zweck
 
@@ -12,31 +34,23 @@
 ### Eingabe
 
 - Suche über die **reine TV-ID** im Format `TV-YYYYMMDD-HHMM-NNNN` (ohne Qualitäts-Suffix)
-- Automatische Bereinigung von Suffixen (z. B. `.hq.mp4`) und Pfadanteilen aus der Eingabe
+- Automatische Bereinigung von Suffixen und Pfadanteilen aus der Eingabe
 - Optionale Angabe des **Senders** (Standard: `ndr`)
 
 ### Verfügbarkeitsprüfung
 
-- Automatische Abfrage aller **Qualitätsstufen (Renditions):** `1080`, `hd`, `hq`, `ln`, `mn`, `ao`, `lo`, `lp`
-- Drei **Auslieferungsformate** je Rendition:
-  - Progressive Download (MP4)
-  - Adaptive HLS (M3U8)
-  - Adaptive DASH (MPD)
+- Automatische Abfrage aller Qualitätsstufen je **MP4 / HLS / DASH**
 - **URL-Ableitung** per Regex aus TV-ID, Datum und Sender-Pfad (`/ndr/JJJJ/MMTT/`)
-- Prüfung aller drei Umgebungen beim Start; Umschaltung **Dev / Stage / Prod** per Tab ohne erneuten Lauf
-- **Kompakte Übersicht** mit grünem Haken (verfügbar) und rotem Kreuz (nicht verfügbar)
-- HTTP-Prüfung im Browser (HEAD/GET), bei Bedarf Fallback über Video-, HLS- oder DASH-Probes
+- Umschaltung **Dev / Stage / Prod** per Tab
+- Kompakte Übersicht mit ✓ / ✕
 
 ### Player
 
-- Separater **Player-Bereich** unter der Verfügbarkeitsübersicht
-- Auswahl durch Klick auf eine Matrix-Zelle; Anzeige von Ausspielpfad und Status
-- Wiedergabe für MP4 (nativ), HLS (hls.js / Safari nativ), DASH (dash.js)
-- Funktionen: **Abspielen**, **Neu Laden**, **In neuem Tab öffnen**, **URL kopieren**
+- Separater Player-Bereich: Abspielen, Neu Laden, Tab öffnen, URL kopieren
 
-### Origin-URLs (V1.0)
+### Origin-URLs
 
-| Umgebung | Origin |
+| Umgebung | URL |
 | --- | --- |
 | Dev | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
 | Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
@@ -44,10 +58,5 @@
 
 ### Technik
 
-- Einzelne HTML-Datei, plattformunabhängig (Doppelklick / Browser, ohne Node-Server)
-- Externe Abhängigkeit: hls.js und dash.js (jsDelivr), nur bei Bedarf geladen
-
-### Bekannte Einschränkungen
-
-- Browser-CORS kann direkte Prüfungen und Wiedergabe einschränken (Hinweis bei `file://`-Aufruf)
-- Die Node/Express-Variante auf Branch `main` ist in V1.0 der Standalone-Version funktional nicht identisch (älterer Funktionsumfang)
+- Einzelne HTML-Datei, plattformunabhängig
+- hls.js / dash.js (jsDelivr), bei Bedarf geladen

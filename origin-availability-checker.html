@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>S3-Origin Verfügbarkeitscheck 1.0</title>
+    <title>S3-Origin Verfügbarkeitscheck 1.1</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <style>
       :root {
@@ -476,6 +476,23 @@
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         font-weight: 600;
       }
+      .group-row td {
+        background: var(--navy);
+        color: var(--text-inverse);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        text-align: left;
+        padding: 8px 14px;
+      }
+      .format-remark {
+        display: block;
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        font-style: italic;
+      }
       @media (max-width: 600px) {
         .advanced-grid { grid-template-columns: 1fr; }
         .env-tab { padding: 10px 8px; font-size: 13px; }
@@ -494,7 +511,7 @@
             <p class="subtitle">(Dev / Stage / Prod)</p>
           </div>
         </div>
-        <span class="brand-version">Version 1.0</span>
+        <span class="brand-version">Version 1.1</span>
       </div>
     </header>
 
@@ -519,9 +536,8 @@
               required
             />
             <p class="field-hint">
-              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Suffixe wie
-              <code>.hq.mp4</code> werden ignoriert. Alle Qualitätsstufen (1080, hd, hq, ln, mn, ao, lo, lp)
-              werden automatisch abgefragt.
+              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Qualitäts-Suffixe
+              (AVC, HEVC, VP9) werden ignoriert. Alle hinterlegten Renditions aus dem Katalog werden automatisch geprüft.
             </p>
           </label>
           <details class="advanced">
@@ -596,9 +612,16 @@
       <details class="revision-block">
         <summary>Revisionshistorie</summary>
         <div class="revision-content">
-          <p class="revision-meta"><strong>Version 1.0</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
+          <p class="revision-meta"><strong>Version 1.1</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
 
-          <h3>Zweck</h3>
+          <h3>Version 1.1 (Renditions-Katalog)</h3>
+          <ul>
+            <li>Erweiterter Katalog aus <code>renditions.xlsx</code>: AVC (8) + HEVC (6) + VP9 (3) = 17 Renditions.</li>
+            <li>Gruppierte Übersicht (AVC / HEVC / VP9) mit Auflösung, Codec und Bemerkungen aus der Tabelle.</li>
+            <li>Unterstützung zusammengesetzter Datei-Suffixe (z. B. <code>.1080.hdr.hevc.mp4</code>, <code>.hq.vp9.mp4</code>).</li>
+          </ul>
+
+          <h3>Version 1.0 – Zweck</h3>
           <ul>
             <li>Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.</li>
             <li>Unterstützung bei der Fehlersuche durch Anzeige von Ausspielpfad und vollständiger URL.</li>
@@ -613,7 +636,7 @@
 
           <h3>Verfügbarkeitsprüfung</h3>
           <ul>
-            <li>Automatische Abfrage aller Qualitätsstufen (Renditions): 1080, hd, hq, ln, mn, ao, lo, lp.</li>
+            <li>Automatische Abfrage aller hinterlegten Renditions (AVC, HEVC, VP9 – siehe Katalog in <code>renditions.xlsx</code>).</li>
             <li>Drei Auslieferungsformate je Rendition: Progressive Download (MP4), Adaptive HLS (M3U8), Adaptive DASH (MPD).</li>
             <li>URL-Ableitung per Regex aus TV-ID, Datum und Sender-Pfad (<code>/ndr/JJJJ/MMTT/</code>).</li>
             <li>Prüfung aller drei Umgebungen beim Start; Umschaltung Dev / Stage / Prod per Tab ohne erneuten Lauf.</li>
@@ -656,37 +679,178 @@
           { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
         ];
 
+        /**
+         * Renditions-Katalog: AVC (Origin-Standard) + HEVC/VP9 aus renditions.xlsx
+         * fileSuffix = Dateiname nach TV-ID (z. B. hq.hevc → …5711.hq.hevc.mp4)
+         */
         const RENDITIONS = [
-          { id: '1080', label: '1080', desc: 'AVC1080' },
-          { id: 'hd', label: 'hd', desc: 'AVC720' },
-          { id: 'hq', label: 'hq', desc: 'AVC540' },
-          { id: 'ln', label: 'ln', desc: 'AVC360' },
-          { id: 'mn', label: 'mn', desc: 'AVC270' },
-          { id: 'ao', label: 'ao', desc: 'Audio Only' },
-          { id: 'lo', label: 'lo', desc: 'lo' },
-          { id: 'lp', label: 'lp', desc: 'lp' },
+          { id: '1080', group: 'AVC (H.264)', fileSuffix: '1080', label: '1080', desc: 'AVC1080', codec: 'AVC' },
+          { id: 'hd', group: 'AVC (H.264)', fileSuffix: 'hd', label: 'hd', desc: 'AVC720', codec: 'AVC' },
+          { id: 'hq', group: 'AVC (H.264)', fileSuffix: 'hq', label: 'hq', desc: 'AVC540', codec: 'AVC' },
+          { id: 'ln', group: 'AVC (H.264)', fileSuffix: 'ln', label: 'ln', desc: 'AVC360', codec: 'AVC' },
+          { id: 'mn', group: 'AVC (H.264)', fileSuffix: 'mn', label: 'mn', desc: 'AVC270', codec: 'AVC' },
+          { id: 'ao', group: 'AVC (H.264)', fileSuffix: 'ao', label: 'ao', desc: 'Audio Only', codec: 'AVC' },
+          { id: 'lo', group: 'AVC (H.264)', fileSuffix: 'lo', label: 'lo', desc: 'lo', codec: 'AVC' },
+          { id: 'lp', group: 'AVC (H.264)', fileSuffix: 'lp', label: 'lp', desc: 'lp', codec: 'AVC' },
+          {
+            id: 'hq-hevc',
+            group: 'HEVC',
+            fileSuffix: 'hq.hevc',
+            label: 'HEVC (WebL)',
+            desc: 'HEVC SDR 540',
+            resolution: '960×540',
+            codec: 'HEVC',
+            remark: 'seit Mai 2022',
+            fileExt: '.hq.hevc.mp4',
+            ard: 'HEVC SDR 540',
+          },
+          {
+            id: 'hd-hevc',
+            group: 'HEVC',
+            fileSuffix: 'hd.hevc',
+            label: 'HEVC (WebXL)',
+            desc: 'HEVC SDR 720',
+            resolution: '1280×720',
+            codec: 'HEVC',
+            remark: 'seit Mai 2022',
+            fileExt: '.hd.hevc.mp4',
+            ard: 'HEVC SDR 720',
+          },
+          {
+            id: '1080-hevc',
+            group: 'HEVC',
+            fileSuffix: '1080.hevc',
+            label: 'HEVC (Full-HD 1080p)',
+            desc: 'HEVC SDR 1080',
+            resolution: '1920×1080',
+            codec: 'HEVC',
+            remark: 'seit Mai 2022',
+            fileExt: '.1080.hevc.mp4',
+            ard: 'HEVC SDR 1080',
+          },
+          {
+            id: '1080-hdr-hevc',
+            group: 'HEVC',
+            fileSuffix: '1080.hdr.hevc',
+            label: 'HEVC-HDR (Full-HD 1080p)',
+            desc: 'HEVC HDR 1080',
+            resolution: '1920×1080',
+            codec: 'HEVC',
+            remark: 'nur bei UHD-HDR',
+            fileExt: '.1080.hdr.hevc.mp4',
+            ard: 'HEVC HDR 1080',
+          },
+          {
+            id: '1440-hdr-hevc',
+            group: 'HEVC',
+            fileSuffix: '1440.hdr.hevc',
+            label: 'HEVC-HDR (1440)',
+            desc: 'HEVC HDR 1440',
+            resolution: '2560×1440',
+            codec: 'HEVC',
+            remark: 'nur bei UHD-HDR',
+            fileExt: '.1440.hdr.hevc.mp4',
+            ard: 'HEVC HDR 1440',
+          },
+          {
+            id: '2160-hdr-hevc',
+            group: 'HEVC',
+            fileSuffix: '2160.hdr.hevc',
+            label: 'HEVC-HDR (2160)',
+            desc: 'HEVC HDR 2160',
+            resolution: '3180×2160',
+            codec: 'HEVC',
+            remark: 'nur bei UHD-HDR',
+            fileExt: '.2160.hdr.hevc.mp4',
+            ard: 'HEVC HDR 2160',
+          },
+          {
+            id: 'hq-vp9',
+            group: 'VP9',
+            fileSuffix: 'hq.vp9',
+            label: 'VP9 (WebL)',
+            desc: 'VP9 540',
+            resolution: '960×540',
+            codec: 'VP9',
+            remark: 'ab Mai 2022, 2024 weggefallen',
+            fileExt: '.hq.vp9.mp4',
+            ard: 'VP9 540',
+          },
+          {
+            id: 'hd-vp9',
+            group: 'VP9',
+            fileSuffix: 'hd.vp9',
+            label: 'VP9 (WebXL)',
+            desc: 'VP9 720',
+            resolution: '1280×720',
+            codec: 'VP9',
+            remark: 'ab Mai 2022, 2024 weggefallen',
+            fileExt: '.hd.vp9.mp4',
+            ard: 'VP9 720',
+          },
+          {
+            id: '1080-vp9',
+            group: 'VP9',
+            fileSuffix: '1080.vp9',
+            label: 'VP9 (Full-HD 1080p)',
+            desc: 'VP9 1080',
+            resolution: '1920×1080',
+            codec: 'VP9',
+            remark: 'ab Mai 2022, 2024 weggefallen',
+            fileExt: '.1080.vp9.mp4',
+            ard: 'VP9 1080',
+          },
         ];
 
         const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
-        const RENDITION_IDS = RENDITIONS.map(function (r) { return r.id; });
+        const RENDITION_FILE_SUFFIXES = RENDITIONS.map(function (r) { return r.fileSuffix; })
+          .sort(function (a, b) { return b.length - a.length; });
+
+        function escapeRegex(s) {
+          return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
 
         /** Entfernt Qualitäts-Suffixe, Dateiendungen und Pfadanteile aus der Eingabe. */
         function normalizeTvIdInput(raw) {
           let s = String(raw || '').trim();
           if (!s) return '';
-          // Vollständige URL oder Pfad → nur Dateiname
           if (s.indexOf('/') !== -1) s = s.split('/').pop();
           s = s.replace(/\.(mp4|m3u8|mpd)$/i, '');
-          // Mehrfach anhängende Qualitäten: TV-….5711.hq.hd → TV-….5711
           let prev;
           do {
             prev = s;
-            RENDITION_IDS.forEach(function (q) {
-              const end = new RegExp('\\.' + q + '$', 'i');
+            RENDITION_FILE_SUFFIXES.forEach(function (suf) {
+              const end = new RegExp('\\.' + escapeRegex(suf) + '$', 'i');
               s = s.replace(end, '');
             });
           } while (s !== prev);
           return s.trim();
+        }
+
+        function renditionLabelHtml(rend) {
+          let html =
+            '<span class="format-name rendition-id">' +
+            rend.label +
+            '</span><span class="format-ext">' +
+            rend.desc +
+            (rend.resolution ? ' · ' + rend.resolution : '') +
+            '</span>';
+          if (rend.remark) {
+            html += '<span class="format-remark">' + rend.remark + '</span>';
+          }
+          return html;
+        }
+
+        function appendGroupRowIfNeeded(tbody, currentGroup, newGroup) {
+          if (currentGroup === newGroup) return newGroup;
+          const tr = document.createElement('tr');
+          tr.className = 'group-row';
+          const td = document.createElement('td');
+          td.colSpan = 4;
+          td.textContent = newGroup;
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return newGroup;
         }
 
         function parseTvId(input) {
@@ -706,12 +870,13 @@
           };
         }
 
-        function buildUrlsForRendition(origin, parsed, broadcaster, renditionId) {
+        function buildUrlsForRendition(origin, parsed, broadcaster, rend) {
           const base = parsed.base;
           const prefix = broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/';
-          const csmil = base + '.,' + renditionId + ',.mp4.csmil';
+          const tag = rend.fileSuffix || rend.id;
+          const csmil = base + '.,' + tag + ',.mp4.csmil';
           return {
-            mp4: origin + '/' + prefix + base + '.' + renditionId + '.mp4',
+            mp4: origin + '/' + prefix + base + '.' + tag + '.mp4',
             hls: origin + '/i/' + prefix + csmil + '/master.m3u8',
             dash: origin + '/i/' + prefix + csmil + '/dash.mpd',
           };
@@ -902,7 +1067,7 @@
 
               await Promise.all(
                 RENDITIONS.map(async function (rend) {
-                  const urls = buildUrlsForRendition(env.origin, parsed, bc, rend.id);
+                  const urls = buildUrlsForRendition(env.origin, parsed, bc, rend);
                   const formats = {};
 
                   await Promise.all(
@@ -987,20 +1152,19 @@
           results.hidden = false;
           playerSection.hidden = true;
           envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
-          matrixBody.innerHTML = RENDITIONS.map(function (rend) {
+          let skGroup = null;
+          RENDITIONS.forEach(function (rend) {
+            if (rend.group !== skGroup) {
+              skGroup = rend.group;
+              matrixBody.innerHTML +=
+                '<tr class="group-row"><td colspan="4">' + rend.group + '</td></tr>';
+            }
             const cells = FORMATS.map(function () {
               return '<td><span class="status loading">…</span></td>';
             }).join('');
-            return (
-              '<tr><td class="format-cell"><span class="format-name rendition-id">' +
-              rend.label +
-              '</span><span class="format-ext">' +
-              rend.desc +
-              '</span></td>' +
-              cells +
-              '</tr>'
-            );
-          }).join('');
+            matrixBody.innerHTML +=
+              '<tr><td class="format-cell">' + renditionLabelHtml(rend) + '</td>' + cells + '</tr>';
+          });
         }
 
         function statusLabel(info) {
@@ -1070,19 +1234,17 @@
           envOriginHint.textContent = 'Origin (' + envData.name + '): ' + envData.origin;
 
           matrixBody.innerHTML = '';
+          let lastGroup = null;
           RENDITIONS.forEach(function (rend) {
             const row = envData.renditions[rend.id];
             if (!row) return;
 
+            lastGroup = appendGroupRowIfNeeded(matrixBody, lastGroup, rend.group);
+
             const tr = document.createElement('tr');
             const labelTd = document.createElement('td');
             labelTd.className = 'format-cell';
-            labelTd.innerHTML =
-              '<span class="format-name rendition-id">' +
-              rend.label +
-              '</span><span class="format-ext">' +
-              rend.desc +
-              '</span>';
+            labelTd.innerHTML = renditionLabelHtml(rend);
             tr.appendChild(labelTd);
 
             FORMATS.forEach(function (fmt) {
