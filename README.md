@@ -1,75 +1,37 @@
-# Origin Verfügbarkeits-Checker
+# S3-Origin Verfügbarkeitscheck · Version 1.0
 
-Web-App zur Prüfung der Verfügbarkeit von Videoinhalten über die drei ARD-MCDN
-Origin-Umgebungen **Dev / Stage / Prod**.
+Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen
+**(Dev / Stage / Prod)**.
 
-## Varianten
+Repository: <https://github.com/lentzh/Origin-Test>
 
-| Branch / Datei | Beschreibung |
+## Standalone (empfohlen)
+
+Datei **`origin-availability-checker.html`** im Projektroot öffnen (Doppelklick oder „Öffnen mit“ im Browser). Kein `npm install`, kein Server nötig.
+
+| Funktion | Beschreibung |
 | --- | --- |
-| `main` | Node/Express-Server (empfohlen für zuverlässige HTTP-Checks) |
-| `standalone` | Eine HTML-Datei, ohne Installation – Doppelklick genügt |
+| TV-ID | Reine Basis-ID `TV-YYYYMMDD-HHMM-NNNN`; alle Qualitäts-Suffixe werden automatisch geprüft |
+| Renditions | 1080, hd, hq, ln, mn, ao, lo, lp |
+| Formate | MP4 (progressiv), HLS (M3U8), DASH (MPD) |
+| Umgebungen | Dev / Stage / Prod per Tab |
+| Übersicht | Kompakte Matrix mit ✓ / ✕ |
+| Player | Separater Bereich mit Ausspielpfad, Abspielen, Neu Laden |
 
-### Standalone (Branch `standalone`)
+Revisionshistorie und Funktionsumfang V1.0: siehe **[REVISIONS.md](REVISIONS.md)** (auch in der HTML-Datei unter „Revisionshistorie“).
 
-Datei **`origin-availability-checker.html`** im Projektroot öffnen (Doppelklick oder
-„Öffnen mit“ im Browser). Kein `npm install`, kein Server nötig.
+## Node/Express-Variante (älterer Stand)
 
-Die Prüfung läuft im Browser: zuerst HTTP (`HEAD`/`GET`), bei CORS-Problemen
-Fallback über Video- bzw. HLS-/DASH-Player-Bibliotheken. Internetzugang und
-CDN-Erreichbarkeit vorausgesetzt; hls.js/dash.js werden von jsDelivr geladen.
-
-Aus einer TV-ID werden per Regex die URLs für alle drei Auslieferungsformate abgeleitet:
-
-| Format | Beschreibung | Endung |
-| --- | --- | --- |
-| Progressive Media Download | Direkter Download | `*.mp4` |
-| Adaptive Media (HLS) | HTTP Live Streaming | `*.m3u8` |
-| Adaptive Media (DASH) | MPEG-DASH | `*.mpd` |
-
-Für jede Kombination aus Umgebung und Format wird die Verfügbarkeit angezeigt
-(grüner Haken ✓ / rotes Kreuz ✕) und es steht ein Play-Button bereit.
-
-## Warum ein Backend?
-
-Die Verfügbarkeits-Prüfungen laufen **serverseitig** (Node/Express). Würde der
-Browser die Origins direkt abfragen, würden die Anfragen i. d. R. an CORS
-scheitern. Das Backend führt einen `HEAD`-Request aus (mit `GET`-Range-Fallback)
-und meldet das Ergebnis an das Frontend.
-
-## Start
+Optional für serverseitige HTTP-Checks ohne Browser-CORS:
 
 ```bash
 npm install
 npm start
 ```
 
-Danach im Browser öffnen: <http://localhost:3000>
+→ <http://localhost:3000> (Frontend unter `public/` – funktional älter als die Standalone V1.0)
 
-Mit Auto-Reload während der Entwicklung:
-
-```bash
-npm run dev
-```
-
-Port anpassen: `PORT=8080 npm start`
-Timeout der Checks (ms): `CHECK_TIMEOUT_MS=5000 npm start`
-
-## TV-ID & Pfad-Ableitung
-
-Erkanntes Muster: `TV-YYYYMMDD-HHMM-NNNN` (optionale Qualität/Endung wird ignoriert).
-
-Beispiel-ID: `TV-20260522-1800-5711.hq.mp4`
-
-Daraus gebildete URLs (Beispiel Dev):
-
-```
-MP4:  https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de/ndr/2026/0522/TV-20260522-1800-5711.hd.mp4
-HLS:  https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de/i/ndr/2026/0522/TV-20260522-1800-5711.,hd,hq,.mp4.csmil/master.m3u8
-DASH: https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de/i/ndr/2026/0522/TV-20260522-1800-5711.,hd,hq,.mp4.csmil/dash.mpd
-```
-
-### Origin-Umgebungen
+## Origin-Umgebungen
 
 | Umgebung | URL |
 | --- | --- |
@@ -77,34 +39,22 @@ DASH: https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de/i/ndr/2026/0522/
 | Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
 | Prod | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de` |
 
-### Erweiterte Optionen (im UI einklappbar)
+## Branches
 
-- **Progressive Qualität** – Qualitäts-Tag für den MP4-Download (Default `hd`).
-- **Adaptive Renditions** – Komma-Liste der Renditions für den `*.csmil`-Pfad
-  (Default `hd,hq`, z. B. auch `ln,1080,hd,hq,mn`).
-- **Sender** – Pfadsegment des Senders (Default `ndr`).
-
-## Wiedergabe / Player
-
-- **MP4** – natives `<video>`-Element.
-- **HLS** – [hls.js](https://github.com/video-dev/hls.js) (Safari nutzt nativen HLS-Support).
-- **DASH** – [dash.js](https://github.com/Dash-Industry-Forum/dash.js).
-
-Hinweis: Die Wiedergabe erfolgt direkt im Browser gegen die Origin. Liefert die
-Origin keine CORS-Header für die Mediensegmente, kann die Wiedergabe trotz
-vorhandener Datei scheitern. In dem Fall stehen „In neuem Tab öffnen" und
-„URL kopieren" als Alternative bereit.
+| Branch | Inhalt |
+| --- | --- |
+| `main` | Standalone HTML + REVISIONS.md + Node-Variante |
+| `standalone` | Entwicklungszweig der Standalone-Version (mit `main` synchron) |
 
 ## Projektstruktur
 
 ```
 .
-├── server.js          # Express-Server + /api/check
-├── lib/paths.js       # Regex-/URL-Ableitung, Umgebungen, Formate
-├── public/
-│   ├── index.html
-│   ├── styles.css
-│   └── app.js         # Suche, Matrix-Rendering, Player
+├── origin-availability-checker.html   # S3-Origin Verfügbarkeitscheck 1.0 (Standalone)
+├── REVISIONS.md                       # Revisionshistorie
+├── server.js                          # Express-Server (ältere Variante)
+├── lib/paths.js
+├── public/                            # Frontend für Node-Variante
 ├── package.json
 └── README.md
 ```
