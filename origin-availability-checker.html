@@ -7,38 +7,37 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <style>
       :root {
-        --bg: #0d1117;
-        --bg-elev: #161b22;
-        --bg-elev-2: #1c2230;
-        --border: #2a313c;
-        --text: #e6edf3;
-        --text-dim: #9aa7b4;
-        --accent: #2f81f7;
-        --accent-hover: #4f97ff;
-        --green: #2ea043;
-        --green-bg: rgba(46, 160, 67, 0.12);
-        --red: #f85149;
-        --red-bg: rgba(248, 81, 73, 0.12);
-        --warn: #d29922;
-        --warn-bg: rgba(210, 153, 34, 0.12);
+        --navy: #0c1754;
+        --blue: #2671c6;
+        --blue-hover: #1f5da8;
+        --cream: #f1eae3;
+        --white: #ffffff;
+        --text: #0c1754;
+        --text-inverse: #ffffff;
+        --text-muted: rgba(12, 23, 84, 0.65);
+        --border: rgba(12, 23, 84, 0.15);
+        --green: #1a7f4b;
+        --green-bg: rgba(26, 127, 75, 0.12);
+        --red: #c42b2b;
+        --red-bg: rgba(196, 43, 43, 0.1);
         --radius: 12px;
-        --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        --shadow: 0 4px 24px rgba(12, 23, 84, 0.08);
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: radial-gradient(1200px 600px at 70% -10%, #1a2233 0%, var(--bg) 55%);
+        background: var(--white);
         color: var(--text);
         min-height: 100vh;
       }
       .topbar {
-        border-bottom: 1px solid var(--border);
-        background: rgba(13, 17, 23, 0.7);
-        backdrop-filter: blur(8px);
+        border-bottom: none;
+        background: var(--navy);
         position: sticky;
         top: 0;
         z-index: 10;
+        box-shadow: 0 2px 12px rgba(12, 23, 84, 0.15);
       }
       .brand {
         display: flex;
@@ -48,31 +47,37 @@
         margin: 0 auto;
         padding: 16px 24px;
       }
-      .logo { font-size: 28px; color: var(--accent); line-height: 1; }
-      .brand h1 { font-size: 18px; margin: 0; }
-      .subtitle { margin: 2px 0 0; color: var(--text-dim); font-size: 13px; }
+      .logo { font-size: 28px; color: var(--blue); line-height: 1; }
+      .brand h1 { font-size: 18px; margin: 0; color: var(--text-inverse); font-weight: 600; }
+      .subtitle { margin: 2px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 13px; }
       .container { max-width: 1000px; margin: 0 auto; padding: 28px 24px 80px; }
       .notice {
         margin-bottom: 20px;
-        background: var(--warn-bg);
-        border: 1px solid var(--warn);
-        color: #e3b341;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        color: var(--text);
         border-radius: 8px;
         padding: 12px 16px;
         font-size: 13px;
         line-height: 1.5;
       }
+      .notice code {
+        background: rgba(12, 23, 84, 0.08);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
       .search-card {
-        background: var(--bg-elev);
+        background: var(--cream);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         padding: 24px;
         box-shadow: var(--shadow);
       }
       .field { display: flex; flex-direction: column; gap: 6px; }
-      .field-label { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+      .field-label { font-size: 13px; color: var(--text); font-weight: 600; }
       input[type="text"] {
-        background: var(--bg);
+        background: var(--white);
         border: 1px solid var(--border);
         color: var(--text);
         border-radius: 8px;
@@ -82,17 +87,18 @@
       }
       input[type="text"]:focus {
         outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.25);
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(38, 113, 198, 0.2);
       }
       .advanced { margin: 16px 0 4px; }
-      .advanced summary { cursor: pointer; color: var(--text-dim); font-size: 13px; }
+      .advanced summary { cursor: pointer; color: var(--text-muted); font-size: 13px; }
+      .advanced summary:hover { color: var(--text); }
       .advanced-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
       .btn-primary {
         margin-top: 18px;
         width: 100%;
-        background: var(--accent);
-        color: #fff;
+        background: var(--blue);
+        color: var(--text-inverse);
         border: none;
         border-radius: 8px;
         padding: 13px 18px;
@@ -103,14 +109,15 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
+        transition: background 0.15s;
       }
-      .btn-primary:hover { background: var(--accent-hover); }
+      .btn-primary:hover { background: var(--blue-hover); }
       .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
       .spinner {
         width: 16px;
         height: 16px;
         border: 2px solid rgba(255, 255, 255, 0.4);
-        border-top-color: #fff;
+        border-top-color: var(--text-inverse);
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
       }
@@ -118,14 +125,14 @@
       .parse-info {
         margin: 14px 0 0;
         font-size: 13px;
-        color: var(--text-dim);
+        color: var(--text-muted);
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
       }
       .error-box {
         margin-top: 20px;
         background: var(--red-bg);
         border: 1px solid var(--red);
-        color: #ffb4b0;
+        color: var(--red);
         border-radius: 8px;
         padding: 14px 16px;
         font-size: 14px;
@@ -135,26 +142,32 @@
         overflow-x: auto;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: var(--bg-elev);
+        background: var(--white);
         box-shadow: var(--shadow);
       }
       .matrix { width: 100%; border-collapse: collapse; min-width: 640px; }
-      .matrix th, .matrix td { padding: 16px; text-align: center; border-bottom: 1px solid var(--border); }
+      .matrix th, .matrix td {
+        padding: 16px;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
       .matrix thead th {
         font-size: 13px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: var(--text-dim);
-        background: var(--bg-elev-2);
+        color: var(--text-inverse);
+        background: var(--navy);
       }
+      .matrix tbody tr:nth-child(even) td { background: rgba(241, 234, 227, 0.35); }
       .matrix tbody tr:last-child td { border-bottom: none; }
       .format-col { text-align: left !important; }
       .format-cell { text-align: left; }
-      .format-name { font-weight: 600; font-size: 14px; }
+      .format-name { font-weight: 600; font-size: 14px; color: var(--text); }
       .format-ext {
         display: block;
         font-size: 12px;
-        color: var(--text-dim);
+        color: var(--text-muted);
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         margin-top: 2px;
       }
@@ -171,26 +184,28 @@
       }
       .status.ok { background: var(--green-bg); color: var(--green); }
       .status.fail { background: var(--red-bg); color: var(--red); }
-      .status.loading { background: var(--bg-elev-2); color: var(--text-dim); }
+      .status.loading { background: var(--cream); color: var(--text-muted); }
       .status-code {
         font-size: 11px;
-        color: var(--text-dim);
+        color: var(--text-muted);
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         max-width: 140px;
         word-break: break-word;
         text-align: center;
       }
       .btn-play {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text);
+        background: var(--blue);
+        border: none;
+        color: var(--text-inverse);
         border-radius: 6px;
         padding: 6px 12px;
         font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
+        transition: background 0.15s;
       }
-      .btn-play:hover:not(:disabled) { border-color: var(--accent); background: rgba(47, 129, 247, 0.1); }
-      .btn-play:disabled { opacity: 0.4; cursor: not-allowed; }
+      .btn-play:hover:not(:disabled) { background: var(--blue-hover); }
+      .btn-play:disabled { opacity: 0.4; cursor: not-allowed; background: var(--text-muted); }
       /* hidden-Attribut wird von display:flex überschrieben – Modal blockierte sonst die ganze Seite */
       .modal[hidden] {
         display: none !important;
@@ -206,33 +221,45 @@
         justify-content: center;
         padding: 20px;
       }
-      .modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); }
+      .modal-backdrop { position: absolute; inset: 0; background: rgba(12, 23, 84, 0.55); }
       .modal-content {
         position: relative;
         width: min(900px, 100%);
-        background: var(--bg-elev);
+        background: var(--white);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         overflow: hidden;
+        box-shadow: 0 12px 40px rgba(12, 23, 84, 0.2);
       }
       .modal-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 16px 20px;
-        border-bottom: 1px solid var(--border);
+        border-bottom: none;
+        background: var(--navy);
       }
-      .modal-header h2 { margin: 0; font-size: 16px; }
-      .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 26px; cursor: pointer; }
-      .player-wrap { background: #000; }
+      .modal-header h2 { margin: 0; font-size: 16px; color: var(--text-inverse); font-weight: 600; }
+      .modal-close {
+        background: transparent;
+        border: none;
+        color: var(--text-inverse);
+        font-size: 26px;
+        cursor: pointer;
+        line-height: 1;
+        opacity: 0.85;
+      }
+      .modal-close:hover { opacity: 1; }
+      .player-wrap { background: #0c1754; }
       #video { width: 100%; max-height: 60vh; display: block; }
       .player-url {
         margin: 0;
         padding: 12px 20px;
         font-size: 12px;
-        color: var(--text-dim);
+        color: var(--text-muted);
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         word-break: break-all;
+        background: var(--cream);
       }
       .player-error {
         margin: 0 20px 12px;
@@ -240,19 +267,41 @@
         background: var(--red-bg);
         border: 1px solid var(--red);
         border-radius: 8px;
-        color: #ffb4b0;
+        color: var(--red);
         font-size: 13px;
       }
-      .modal-footer { display: flex; gap: 12px; padding: 0 20px 18px; }
+      .modal-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px 18px;
+        background: var(--cream);
+        border-top: 1px solid var(--border);
+      }
       .btn-secondary {
-        background: var(--bg-elev-2);
-        border: 1px solid var(--border);
+        background: var(--white);
+        border: 1px solid var(--navy);
         color: var(--text);
         border-radius: 6px;
         padding: 9px 14px;
         font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
         text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+      }
+      .btn-secondary:hover {
+        background: var(--navy);
+        color: var(--text-inverse);
+      }
+      .btn-reload {
+        background: var(--blue);
+        border: none;
+        color: var(--text-inverse);
+      }
+      .btn-reload:hover {
+        background: var(--blue-hover);
+        color: var(--text-inverse);
       }
       @media (max-width: 600px) {
         .advanced-grid { grid-template-columns: 1fr; }
@@ -348,6 +397,7 @@
         <p id="player-url" class="player-url"></p>
         <p id="player-error" class="player-error" hidden></p>
         <div class="modal-footer">
+          <button id="reload-player" type="button" class="btn-secondary btn-reload">Neu Laden</button>
           <a id="open-tab" class="btn-secondary" target="_blank" rel="noopener">In neuem Tab öffnen</a>
           <button id="copy-url" type="button" class="btn-secondary">URL kopieren</button>
         </div>
@@ -728,8 +778,10 @@
         const playerError = document.getElementById('player-error');
         const openTab = document.getElementById('open-tab');
         const copyUrlBtn = document.getElementById('copy-url');
+        const reloadPlayerBtn = document.getElementById('reload-player');
         let hlsInstance = null;
         let dashInstance = null;
+        let playerState = { type: null, url: null, title: null };
 
         function teardownPlayer() {
           if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
@@ -771,28 +823,18 @@
           return libLoad.dash;
         }
 
-        async function openPlayer(type, url, title) {
-          playerError.hidden = true;
-          playerTitle.textContent = title;
-          playerUrl.textContent = url;
-          openTab.href = url;
-          modal.hidden = false;
+        async function startPlayback(type, url) {
           teardownPlayer();
-
-          try {
-            if (type === 'hls') await ensureLib('hls');
-            if (type === 'dash') await ensureLib('dash');
-          } catch (e) {
-            showPlayerError(e.message || String(e));
-            return;
-          }
+          playerError.hidden = true;
 
           if (type === 'mp4') {
             video.src = url;
+            video.load();
             video.play().catch(function () {});
           } else if (type === 'hls') {
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
               video.src = url;
+              video.load();
               video.play().catch(function () {});
             } else if (window.Hls && window.Hls.isSupported()) {
               hlsInstance = new window.Hls();
@@ -817,9 +859,42 @@
           }
         }
 
+        async function openPlayer(type, url, title) {
+          playerState = { type: type, url: url, title: title };
+          playerTitle.textContent = title;
+          playerUrl.textContent = url;
+          openTab.href = url;
+          modal.hidden = false;
+
+          try {
+            if (type === 'hls') await ensureLib('hls');
+            if (type === 'dash') await ensureLib('dash');
+          } catch (e) {
+            showPlayerError(e.message || String(e));
+            return;
+          }
+
+          await startPlayback(type, url);
+        }
+
+        async function reloadPlayer() {
+          if (!playerState.type || !playerState.url) return;
+          reloadPlayerBtn.disabled = true;
+          try {
+            if (playerState.type === 'hls') await ensureLib('hls');
+            if (playerState.type === 'dash') await ensureLib('dash');
+            await startPlayback(playerState.type, playerState.url);
+          } catch (e) {
+            showPlayerError(e.message || String(e));
+          } finally {
+            reloadPlayerBtn.disabled = false;
+          }
+        }
+
         function closePlayer() {
           modal.hidden = true;
           teardownPlayer();
+          playerState = { type: null, url: null, title: null };
         }
 
         modal.addEventListener('click', function (e) {
@@ -827,6 +902,9 @@
         });
         document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape' && !modal.hidden) closePlayer();
+        });
+        reloadPlayerBtn.addEventListener('click', function () {
+          reloadPlayer();
         });
         copyUrlBtn.addEventListener('click', async function () {
           try {
