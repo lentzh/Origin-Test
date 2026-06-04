@@ -150,6 +150,26 @@
         font-size: 14px;
       }
       .results { margin-top: 28px; }
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .availability-legend {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 0 0 12px;
+      }
+      .availability-legend .status {
+        width: 22px;
+        height: 22px;
+        font-size: 13px;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
       .table-wrap {
         overflow-x: auto;
         border: 1px solid var(--border);
@@ -157,7 +177,44 @@
         background: var(--white);
         box-shadow: var(--shadow);
       }
-      .matrix { width: 100%; border-collapse: collapse; min-width: 640px; }
+      .matrix { width: 100%; border-collapse: collapse; }
+      .compact-matrix { min-width: 420px; }
+      .compact-matrix th,
+      .compact-matrix td {
+        padding: 8px 10px;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+      .compact-matrix .format-cell {
+        text-align: left;
+        white-space: nowrap;
+        padding-left: 14px;
+      }
+      .compact-matrix .format-name { font-size: 13px; }
+      .compact-matrix .format-ext { font-size: 11px; margin-top: 0; }
+      .status-slot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 44px;
+        padding: 6px 0;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.12s, box-shadow 0.12s;
+      }
+      .status-slot:hover { background: rgba(38, 113, 198, 0.1); }
+      .status-slot.selected { box-shadow: inset 0 0 0 2px var(--blue); background: rgba(38, 113, 198, 0.08); }
+      .status-slot:disabled { cursor: default; }
+      .status-slot:disabled:hover { background: transparent; }
+      .compact-matrix .status {
+        width: 28px;
+        height: 28px;
+        font-size: 15px;
+      }
       .matrix th, .matrix td {
         padding: 16px;
         text-align: center;
@@ -183,13 +240,6 @@
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         margin-top: 2px;
       }
-      .cell-inner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        min-width: 200px;
-      }
       .ausspielpfad {
         width: 100%;
         text-align: left;
@@ -198,6 +248,45 @@
         border-radius: 6px;
         padding: 8px 10px;
         word-break: break-all;
+      }
+      .player-panel {
+        margin-top: 32px;
+        padding: 24px;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .player-hint {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .player-meta { margin-bottom: 16px; }
+      .player-meta-title {
+        margin: 0 0 10px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .player-status-line {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .player-panel .player-wrap {
+        background: var(--navy);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+      .player-panel #video { width: 100%; max-height: 50vh; display: block; }
+      .player-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
       }
       .ausspielpfad-label {
         display: block;
@@ -246,76 +335,8 @@
         word-break: break-word;
         text-align: center;
       }
-      .btn-play {
-        background: var(--blue);
-        border: none;
-        color: var(--text-inverse);
-        border-radius: 6px;
-        padding: 6px 12px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.15s;
-      }
-      .btn-play:hover:not(:disabled) { background: var(--blue-hover); }
-      .btn-play:disabled { opacity: 0.4; cursor: not-allowed; background: var(--text-muted); }
-      /* hidden-Attribut wird von display:flex überschrieben – Modal blockierte sonst die ganze Seite */
-      .modal[hidden] {
-        display: none !important;
-        pointer-events: none !important;
-        visibility: hidden !important;
-      }
-      .modal:not([hidden]) {
-        position: fixed;
-        inset: 0;
-        z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-      .modal-backdrop { position: absolute; inset: 0; background: rgba(12, 23, 84, 0.55); }
-      .modal-content {
-        position: relative;
-        width: min(900px, 100%);
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: 0 12px 40px rgba(12, 23, 84, 0.2);
-      }
-      .modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        border-bottom: none;
-        background: var(--navy);
-      }
-      .modal-header h2 { margin: 0; font-size: 16px; color: var(--text-inverse); font-weight: 600; }
-      .modal-close {
-        background: transparent;
-        border: none;
-        color: var(--text-inverse);
-        font-size: 26px;
-        cursor: pointer;
-        line-height: 1;
-        opacity: 0.85;
-      }
-      .modal-close:hover { opacity: 1; }
-      .player-wrap { background: #0c1754; }
-      #video { width: 100%; max-height: 60vh; display: block; }
-      .player-url {
-        margin: 0;
-        padding: 12px 20px;
-        font-size: 12px;
-        color: var(--text-muted);
-        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-        word-break: break-all;
-        background: var(--cream);
-      }
       .player-error {
-        margin: 0 20px 12px;
+        margin: 0 0 12px;
         padding: 10px 14px;
         background: var(--red-bg);
         border: 1px solid var(--red);
@@ -323,14 +344,16 @@
         color: var(--red);
         font-size: 13px;
       }
-      .modal-footer {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 16px 20px 18px;
-        background: var(--cream);
-        border-top: 1px solid var(--border);
+      .btn-play-action {
+        background: var(--blue);
+        border: none;
+        color: var(--text-inverse);
       }
+      .btn-play-action:hover:not(:disabled) {
+        background: var(--blue-hover);
+        color: var(--text-inverse);
+      }
+      .btn-play-action:disabled { opacity: 0.45; cursor: not-allowed; }
       .btn-secondary {
         background: var(--white);
         border: 1px solid var(--navy);
@@ -461,47 +484,55 @@
       <section id="error" class="error-box" hidden></section>
 
       <section id="results" class="results" hidden>
+        <h2 class="section-title">Verfügbarkeitsübersicht</h2>
         <nav class="env-tabs" id="env-tabs" aria-label="Umgebung">
           <button type="button" class="env-tab active" data-env="dev">Dev</button>
           <button type="button" class="env-tab" data-env="stage">Stage</button>
           <button type="button" class="env-tab" data-env="prod">Prod</button>
         </nav>
         <p id="env-origin-hint" class="env-origin-hint"></p>
+        <p class="availability-legend">
+          <span><span class="status ok">✓</span> verfügbar</span>
+          <span><span class="status fail">✕</span> nicht verfügbar</span>
+          <span>· Zelle anklicken → Player</span>
+        </p>
         <div class="table-wrap">
-          <table class="matrix">
+          <table class="matrix compact-matrix">
             <thead>
               <tr>
                 <th class="format-col">Rendition</th>
-                <th>Progressive (MP4)</th>
-                <th>Adaptive HLS</th>
-                <th>Adaptive DASH</th>
+                <th>MP4</th>
+                <th>HLS</th>
+                <th>DASH</th>
               </tr>
             </thead>
             <tbody id="matrix-body"></tbody>
           </table>
         </div>
       </section>
-    </main>
 
-    <div id="player-modal" class="modal" hidden>
-      <div class="modal-backdrop" data-close></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 id="player-title">Wiedergabe</h2>
-          <button class="modal-close" data-close aria-label="Schließen">×</button>
+      <section id="player-section" class="player-panel" hidden>
+        <h2 class="section-title">Player</h2>
+        <p id="player-hint" class="player-hint">
+          Wähle in der Verfügbarkeitsübersicht eine Zelle (am besten mit grünem Haken).
+        </p>
+        <div id="player-meta" class="player-meta" hidden>
+          <h3 id="player-title" class="player-meta-title"></h3>
+          <div id="player-path-box" class="ausspielpfad"></div>
+          <p id="player-status-line" class="player-status-line"></p>
         </div>
         <div class="player-wrap">
           <video id="video" controls playsinline></video>
         </div>
-        <p id="player-url" class="player-url"></p>
         <p id="player-error" class="player-error" hidden></p>
-        <div class="modal-footer">
-          <button id="reload-player" type="button" class="btn-secondary btn-reload">Neu Laden</button>
+        <div class="player-actions">
+          <button id="play-selection" type="button" class="btn-secondary btn-play-action" disabled>Abspielen</button>
+          <button id="reload-player" type="button" class="btn-secondary btn-reload" disabled>Neu Laden</button>
           <a id="open-tab" class="btn-secondary" target="_blank" rel="noopener">In neuem Tab öffnen</a>
-          <button id="copy-url" type="button" class="btn-secondary">URL kopieren</button>
+          <button id="copy-url" type="button" class="btn-secondary" disabled>URL kopieren</button>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <script>
       (function () {
@@ -805,9 +836,14 @@
         const fileNotice = document.getElementById('file-notice');
         const envTabs = document.getElementById('env-tabs');
         const envOriginHint = document.getElementById('env-origin-hint');
+        const playerSection = document.getElementById('player-section');
+        const playerHint = document.getElementById('player-hint');
+        const playerMeta = document.getElementById('player-meta');
+        const playerPathBox = document.getElementById('player-path-box');
 
         let checkCache = null;
         let activeEnvId = 'dev';
+        let selectedSlot = null;
 
         if (location.protocol === 'file:') fileNotice.hidden = false;
 
@@ -845,10 +881,11 @@
 
         function renderSkeleton() {
           results.hidden = false;
+          playerSection.hidden = true;
           envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
           matrixBody.innerHTML = RENDITIONS.map(function (rend) {
             const cells = FORMATS.map(function () {
-              return '<td><div class="cell-inner"><span class="status loading">…</span></div></td>';
+              return '<td><span class="status loading">…</span></td>';
             }).join('');
             return (
               '<tr><td class="format-cell"><span class="format-name rendition-id">' +
@@ -862,39 +899,35 @@
           }).join('');
         }
 
-        function buildFormatCell(info, fmt, rend, envName) {
-          const td = document.createElement('td');
-          const inner = document.createElement('div');
-          inner.className = 'cell-inner';
-          const statusLabel = info.error
+        function statusLabel(info) {
+          return info.error
             ? info.error
             : 'HTTP ' + (info.status || '-') + (info.method ? ' · ' + info.method : '');
-          inner.innerHTML =
+        }
+
+        function buildCompactCell(info, fmt, rend) {
+          const td = document.createElement('td');
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSelected =
+            selectedSlot &&
+            selectedSlot.rendId === rend.id &&
+            selectedSlot.fmtId === fmt.id;
+          btn.className =
+            'status-slot' + (isSelected ? ' selected' : '');
+          btn.title = statusLabel(info) + '\n' + info.url;
+          btn.innerHTML =
             '<span class="status ' +
             (info.available ? 'ok' : 'fail') +
-            '" title="' +
-            statusLabel +
             '">' +
             (info.available ? '✓' : '✕') +
-            '</span><span class="status-code">' +
-            statusLabel +
             '</span>';
-
-          const playBtn = document.createElement('button');
-          playBtn.type = 'button';
-          playBtn.className = 'btn-play';
-          playBtn.innerHTML = '▶ Abspielen';
-          playBtn.disabled = !info.available;
-          playBtn.addEventListener('click', function () {
-            openPlayer(
-              fmt.id,
-              info.url,
-              rend.label + ' (' + rend.desc + ') – ' + fmt.label + ' – ' + envName
-            );
+          btn.addEventListener('click', function () {
+            selectedSlot = { rendId: rend.id, fmtId: fmt.id };
+            renderResults(checkCache, activeEnvId);
+            selectForPlayer(rend, fmt, info);
           });
-          inner.appendChild(playBtn);
-          appendAusspielpfad(inner, info.url);
-          td.appendChild(inner);
+          td.appendChild(btn);
           return td;
         }
 
@@ -906,27 +939,24 @@
           }
         }
 
-        function appendAusspielpfad(container, url) {
-          const box = document.createElement('div');
-          box.className = 'ausspielpfad';
-          box.title = url;
+        function renderAusspielpfad(container, url) {
+          container.innerHTML = '';
+          container.title = url;
 
           const label = document.createElement('span');
           label.className = 'ausspielpfad-label';
           label.textContent = 'Ausspielpfad';
-          box.appendChild(label);
+          container.appendChild(label);
 
           const path = document.createElement('code');
           path.className = 'ausspielpfad-path';
           path.textContent = pathFromUrl(url);
-          box.appendChild(path);
+          container.appendChild(path);
 
           const full = document.createElement('span');
           full.className = 'ausspielpfad-url';
           full.textContent = url;
-          box.appendChild(full);
-
-          container.appendChild(box);
+          container.appendChild(full);
         }
 
         function renderResults(cache, envId) {
@@ -952,7 +982,7 @@
             tr.appendChild(labelTd);
 
             FORMATS.forEach(function (fmt) {
-              tr.appendChild(buildFormatCell(row.formats[fmt.id], fmt, rend, envData.name));
+              tr.appendChild(buildCompactCell(row.formats[fmt.id], fmt, rend));
             });
 
             matrixBody.appendChild(tr);
@@ -992,9 +1022,14 @@
             envTabs.querySelectorAll('.env-tab').forEach(function (t) {
               t.classList.toggle('active', t.getAttribute('data-env') === activeEnvId);
             });
+            playerSection.hidden = false;
+            playerHint.hidden = false;
+            playerMeta.hidden = true;
+            selectedSlot = null;
             renderResults(checkCache, activeEnvId);
           } catch (err) {
             results.hidden = true;
+            playerSection.hidden = true;
             showError(err.message || String(err));
           } finally {
             setLoading(false);
@@ -1002,17 +1037,56 @@
         });
 
         /* ---- Player ---- */
-        const modal = document.getElementById('player-modal');
         const video = document.getElementById('video');
         const playerTitle = document.getElementById('player-title');
-        const playerUrl = document.getElementById('player-url');
+        const playerStatusLine = document.getElementById('player-status-line');
         const playerError = document.getElementById('player-error');
         const openTab = document.getElementById('open-tab');
         const copyUrlBtn = document.getElementById('copy-url');
         const reloadPlayerBtn = document.getElementById('reload-player');
+        const playSelectionBtn = document.getElementById('play-selection');
         let hlsInstance = null;
         let dashInstance = null;
-        let playerState = { type: null, url: null, title: null };
+        let playerState = { type: null, url: null, title: null, available: false };
+
+        function selectForPlayer(rend, fmt, info) {
+          const envData = checkCache.envs[activeEnvId];
+          const title =
+            rend.label +
+            ' (' +
+            rend.desc +
+            ') – ' +
+            fmt.label +
+            ' – ' +
+            envData.name;
+
+          playerHint.hidden = true;
+          playerMeta.hidden = false;
+          playerTitle.textContent = title;
+          renderAusspielpfad(playerPathBox, info.url);
+          playerStatusLine.textContent = (info.available ? 'Verfügbar · ' : 'Nicht verfügbar · ') + statusLabel(info);
+
+          playerState = {
+            type: fmt.id,
+            url: info.url,
+            title: title,
+            available: info.available,
+          };
+
+          openTab.href = info.url;
+          copyUrlBtn.disabled = false;
+          reloadPlayerBtn.disabled = !info.available;
+          playSelectionBtn.disabled = !info.available;
+
+          playerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          if (info.available) {
+            openPlayer(fmt.id, info.url, title);
+          } else {
+            teardownPlayer();
+            showPlayerError('Diese Variante ist nicht verfügbar (✕). Ausspielpfad siehe oben.');
+          }
+        }
 
         function teardownPlayer() {
           if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
@@ -1091,11 +1165,14 @@
         }
 
         async function openPlayer(type, url, title) {
-          playerState = { type: type, url: url, title: title };
-          playerTitle.textContent = title;
-          playerUrl.textContent = url;
+          if (title) playerTitle.textContent = title;
+          playerState.type = type;
+          playerState.url = url;
+          playerState.title = title || playerState.title;
+          playerState.available = true;
           openTab.href = url;
-          modal.hidden = false;
+          playSelectionBtn.disabled = false;
+          reloadPlayerBtn.disabled = false;
 
           try {
             if (type === 'hls') await ensureLib('hls');
@@ -1122,24 +1199,17 @@
           }
         }
 
-        function closePlayer() {
-          modal.hidden = true;
-          teardownPlayer();
-          playerState = { type: null, url: null, title: null };
-        }
-
-        modal.addEventListener('click', function (e) {
-          if (e.target.hasAttribute('data-close')) closePlayer();
-        });
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape' && !modal.hidden) closePlayer();
+        playSelectionBtn.addEventListener('click', function () {
+          if (!playerState.available || !playerState.url) return;
+          openPlayer(playerState.type, playerState.url, playerState.title);
         });
         reloadPlayerBtn.addEventListener('click', function () {
           reloadPlayer();
         });
         copyUrlBtn.addEventListener('click', async function () {
+          if (!playerState.url) return;
           try {
-            await navigator.clipboard.writeText(playerUrl.textContent);
+            await navigator.clipboard.writeText(playerState.url);
             copyUrlBtn.textContent = 'Kopiert ✓';
             setTimeout(function () { copyUrlBtn.textContent = 'URL kopieren'; }, 1500);
           } catch (_) {}
