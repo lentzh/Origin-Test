@@ -349,7 +349,9 @@
         overflow: hidden;
         margin-bottom: 12px;
       }
-      .player-panel #video { width: 100%; max-height: 50vh; display: block; }
+      .player-panel #video,
+      .player-panel #audio { width: 100%; max-height: 50vh; display: block; }
+      .player-panel #audio { max-height: 4rem; }
       .player-actions {
         display: flex;
         flex-wrap: wrap;
@@ -539,19 +541,18 @@
       <section class="search-card">
         <form id="search-form">
           <label class="field">
-            <span class="field-label">TV-ID (Basis, ohne Qualität)</span>
+            <span class="field-label">TV-ID / AU-ID (Basis, ohne Endung)</span>
             <input
               id="tvid"
               type="text"
               autocomplete="off"
               spellcheck="false"
-              placeholder="TV-20260522-1800-5711"
+              placeholder="TV-20260522-1800-5711 oder AU-20260522-0003-3300"
               required
             />
             <p class="field-hint">
-              Nur die reine ID eingeben (Format <code>TV-YYYYMMDD-HHMM-NNNN</code>). Qualitäts-Suffixe werden
-              ignoriert. Alle Renditions der gewählten LRA (aktuell <strong>LRA NDR</strong>, Quelle:
-              <code>renditions.xlsx</code>) werden automatisch geprüft.
+              <strong>Video:</strong> <code>TV-YYYYMMDD-HHMM-NNNN</code> – alle Renditions (MP4/HLS/DASH) der LRA NDR.<br />
+              <strong>Audio:</strong> <code>AU-YYYYMMDD-NNNN-NNNN</code> – nur <code>.mp3</code>, eine Spalte je Umgebung.
             </p>
           </label>
           <details class="advanced">
@@ -590,12 +591,12 @@
         <p class="availability-legend">
           <span><span class="status ok">✓</span> verfügbar</span>
           <span><span class="status fail">✕</span> nicht verfügbar</span>
-          <span>· Zelle anklicken → Player</span>
+          <span id="legend-formats">· Zelle anklicken → Player</span>
         </p>
         <div class="table-wrap">
           <table class="matrix compact-matrix">
             <thead>
-              <tr>
+              <tr id="matrix-head-row">
                 <th class="format-col">Rendition</th>
                 <th>MP4</th>
                 <th>HLS</th>
@@ -619,6 +620,7 @@
         </div>
         <div class="player-wrap">
           <video id="video" controls playsinline></video>
+          <audio id="audio" controls hidden></audio>
         </div>
         <p id="player-error" class="player-error" hidden></p>
         <div class="player-actions">
@@ -640,6 +642,7 @@
             <li>Katalog-Struktur pro LRA erweiterbar (<code>lib/renditions-catalog.json</code>, Import via <code>tools/import-renditions.py</code>).</li>
             <li>Gruppen: Audio, AVC, HEVC, VP9, Flash (historisch, nicht prüfbar).</li>
             <li>LRA-Auswahl in den erweiterten Optionen; Sender-Pfad wird aus der LRA abgeleitet.</li>
+            <li><strong>Audio-IDs</strong> (<code>AU-…</code>): nur MP3, vereinfachte Übersicht ohne MP4/HLS/DASH.</li>
           </ul>
 
           <h3>Version 1.0 – Zweck</h3>
@@ -650,7 +653,7 @@
 
           <h3>Eingabe</h3>
           <ul>
-            <li>Suche über die reine TV-ID im Format <code>TV-YYYYMMDD-HHMM-NNNN</code> (ohne Qualitäts-Suffix).</li>
+            <li>Suche über TV-ID (<code>TV-…</code>) oder Audio-ID (<code>AU-…</code>, nur MP3).</li>
             <li>Automatische Bereinigung von Suffixen (z. B. <code>.hq.mp4</code>) und Pfadanteilen aus der Eingabe.</li>
             <li>Optionale Angabe des Senders (Standard: <code>ndr</code>).</li>
           </ul>
@@ -669,7 +672,7 @@
           <ul>
             <li>Separater Player-Bereich unter der Verfügbarkeitsübersicht.</li>
             <li>Auswahl durch Klick auf eine Matrix-Zelle; Anzeige von Ausspielpfad und Status.</li>
-            <li>Wiedergabe für MP4 (nativ), HLS (hls.js / Safari nativ), DASH (dash.js).</li>
+            <li>Wiedergabe für MP4 (nativ), MP3 (Audio-Element), HLS (hls.js / Safari nativ), DASH (dash.js).</li>
             <li>Funktionen: Abspielen, Neu Laden, In neuem Tab öffnen, URL kopieren.</li>
           </ul>
 
@@ -699,6 +702,14 @@
           { id: 'hls', label: 'Adaptive HLS', ext: '*.m3u8' },
           { id: 'dash', label: 'Adaptive DASH', ext: '*.mpd' },
         ];
+
+        const AUDIO_FORMAT = { id: 'mp3', label: 'MP3 (Audio)', ext: '*.mp3' };
+        const AUDIO_RENDITION_META = {
+          id: 'audio',
+          label: 'Audio (MP3)',
+          desc: 'Progressive Audio',
+          checkable: true,
+        };
 
         /* CATALOG_START */
 const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"ndr": {"id": "ndr", "label": "LRA NDR", "broadcaster": "ndr", "renditions": [{"id": "ao", "group": "Audio", "fileSuffix": "ao", "checkable": true, "label": "MP4 (nur Audio)", "profile": null, "desc": "Audio only", "resolution": "Audio only", "codec": null, "remark": "März 2013 bis Juni 2025", "fileExt": ".ao.mp4", "ard": null}, {"id": "avc270", "group": "AVC (H.264)", "fileSuffix": "mn", "checkable": true, "label": "MP4 (WebM niedrig)", "profile": "avc270", "desc": "avc270 · 480x270 · H.264", "resolution": "480x270", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".mn.mp4", "ard": null}, {"id": "avc360", "group": "AVC (H.264)", "fileSuffix": "ln", "checkable": true, "label": "MP4 (WebL niedrig)", "profile": "avc360", "desc": "avc360 · 640x360 · H.264", "resolution": "640x360", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".ln.mp4", "ard": null}, {"id": "avc540", "group": "AVC (H.264)", "fileSuffix": "hq", "checkable": true, "label": "MP4 (WebL)", "profile": "avc540", "desc": "avc540 · 960x540 · H.264", "resolution": "960x540", "codec": "H.264", "remark": null, "fileExt": ".hq.mp4", "ard": null}, {"id": "avc720", "group": "AVC (H.264)", "fileSuffix": "hd", "checkable": true, "label": "MP4 (WebXL)", "profile": "avc720", "desc": "avc720 · 1280x720 · H.264", "resolution": "1280x720", "codec": "H.264", "remark": "seit März 2015", "fileExt": ".hd.mp4", "ard": null}, {"id": "avc1080", "group": "AVC (H.264)", "fileSuffix": "1080", "checkable": true, "label": "MP4 (Full-HD 1080p)", "profile": "avc1080", "desc": "avc1080 · 1920x1080 · H.264", "resolution": "1920x1080", "codec": "H.264", "remark": "seit Mai 2022", "fileExt": ".1080.mp4", "ard": null}, {"id": "hevcsdr540", "group": "HEVC", "fileSuffix": "hq.hevc", "checkable": true, "label": "HEVC (WebL)", "profile": "hevcsdr540", "desc": "hevcsdr540 · 960x540 · HEVC", "resolution": "960x540", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hq.hevc.mp4", "ard": null}, {"id": "hevcsdr720", "group": "HEVC", "fileSuffix": "hd.hevc", "checkable": true, "label": "HEVC (WebXL)", "profile": "hevcsdr720", "desc": "hevcsdr720 · 1280x720 · HEVC", "resolution": "1280x720", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hd.hevc.mp4", "ard": null}, {"id": "hevcsdr1080", "group": "HEVC", "fileSuffix": "1080.hevc", "checkable": true, "label": "HEVC (Full-HD 1080p)", "profile": "hevcsdr1080", "desc": "hevcsdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".1080.hevc.mp4", "ard": null}, {"id": "hevchdr1080", "group": "HEVC", "fileSuffix": "1080.hdr.hevc", "checkable": true, "label": "HEVC-HDR (Full-HD 1080p)", "profile": "hevchdr1080", "desc": "hevchdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1080.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr1440", "group": "HEVC", "fileSuffix": "1440.hdr.hevc", "checkable": true, "label": "HEVC-HDR (1440)", "profile": "hevchdr1440", "desc": "hevchdr1440 · 2560x1440 · HEVC", "resolution": "2560x1440", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1440.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr2160", "group": "HEVC", "fileSuffix": "2160.hdr.hevc", "checkable": true, "label": "HEVC-HDR (2160)", "profile": "hevchdr2160", "desc": "hevchdr2160 · 3180x2160 · HEVC", "resolution": "3180x2160", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".2160.hdr.hevc.mp4", "ard": null}, {"id": "vp9sdr540", "group": "VP9", "fileSuffix": "hq.vp9", "checkable": true, "label": "VP9 (WebL)", "profile": "vp9sdr540", "desc": "vp9sdr540 · 960x540 · VP9", "resolution": "960x540", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hq.vp9.mp4", "ard": null}, {"id": "vp9sdr720", "group": "VP9", "fileSuffix": "hd.vp9", "checkable": true, "label": "VP9 (WebXL)", "profile": "vp9sdr720", "desc": "vp9sdr720 · 1280x720 · VP9", "resolution": "1280x720", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hd.vp9.mp4", "ard": null}, {"id": "vp9sdr1080", "group": "VP9", "fileSuffix": "1080.vp9", "checkable": true, "label": "VP9 (Full-HD 1080p)", "profile": "vp9sdr1080", "desc": "vp9sdr1080 · 1920x1080 · VP9", "resolution": "1920x1080", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".1080.vp9.mp4", "ard": null}, {"id": "lo", "group": "AVC (H.264)", "fileSuffix": "lo", "checkable": true, "label": "MP4 (WebS)", "profile": null, "desc": "320x180 · H.264", "resolution": "320x180", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lo.mp4", "ard": null}, {"id": "hi", "group": "AVC (H.264)", "fileSuffix": "hi", "checkable": true, "label": "MP4 (WebM)", "profile": null, "desc": "512x288 · H.264", "resolution": "512x288", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".hi.mp4", "ard": null}, {"id": "lp", "group": "AVC (H.264)", "fileSuffix": "lp", "checkable": true, "label": "MP4 (WebL+)", "profile": null, "desc": "720x576 · H.264", "resolution": "720x576", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lp.mp4", "ard": null}, {"id": "flash-low", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash LOW", "profile": null, "desc": "Flash LOW", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-high", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash HIGH", "profile": null, "desc": "Flash HIGH", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-l-", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash (L)", "profile": null, "desc": "Flash (L)", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}]}}};
@@ -743,17 +754,25 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
         }
 
         const TV_ID_REGEX = /TV-(\d{4})(\d{2})(\d{2})-(\d{4})-(\d+)/i;
+        const AU_ID_REGEX = /AU-(\d{4})(\d{2})(\d{2})-(\d+)-(\d+)/i;
 
         function escapeRegex(s) {
           return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
-        /** Entfernt Qualitäts-Suffixe, Dateiendungen und Pfadanteile aus der Eingabe. */
-        function normalizeTvIdInput(raw) {
+        function isAuInput(raw) {
+          return /^AU-/i.test(String(raw || '').trim());
+        }
+
+        /** Entfernt Endungen und Qualitäts-Suffixe aus der Eingabe. */
+        function normalizeIdInput(raw) {
           let s = String(raw || '').trim();
           if (!s) return '';
           if (s.indexOf('/') !== -1) s = s.split('/').pop();
-          s = s.replace(/\.(mp4|m3u8|mpd)$/i, '');
+          if (isAuInput(s)) {
+            return s.replace(/\.(mp3|mp4|m3u8|mpd)$/i, '').trim();
+          }
+          s = s.replace(/\.(mp4|m3u8|mpd|mp3)$/i, '');
           let prev;
           do {
             prev = s;
@@ -763,6 +782,45 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
             });
           } while (s !== prev);
           return s.trim();
+        }
+
+        function parseTvFromNormalized(normalized) {
+          const match = normalized.match(TV_ID_REGEX);
+          if (!match) return null;
+          const [, year, month, day, time, seq] = match;
+          return {
+            contentType: 'tv',
+            base: 'TV-' + year + month + day + '-' + time + '-' + seq,
+            year: year,
+            month: month,
+            day: day,
+            monthDay: month + day,
+            time: time,
+            seq: seq,
+          };
+        }
+
+        function parseAuFromNormalized(normalized) {
+          const match = normalized.match(AU_ID_REGEX);
+          if (!match) return null;
+          const [, year, month, day, segment, seq] = match;
+          return {
+            contentType: 'au',
+            base: 'AU-' + year + month + day + '-' + segment + '-' + seq,
+            year: year,
+            month: month,
+            day: day,
+            monthDay: month + day,
+            segment: segment,
+            seq: seq,
+          };
+        }
+
+        function parseContentId(input) {
+          if (!input) return null;
+          const normalized = normalizeIdInput(input);
+          if (isAuInput(normalized)) return parseAuFromNormalized(normalized);
+          return parseTvFromNormalized(normalized);
         }
 
         function renditionLabelHtml(rend) {
@@ -783,33 +841,41 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           return { url: '', available: false, status: 0, error: 'n/a', method: '—' };
         }
 
+        function matrixColspan(contentType) {
+          const t = contentType || (checkCache && checkCache.contentType);
+          return t === 'au' ? 2 : 4;
+        }
+
+        function setMatrixLayout(contentType) {
+          const head = document.getElementById('matrix-head-row');
+          const legendExtra = document.getElementById('legend-formats');
+          if (!head) return;
+          if (contentType === 'au') {
+            head.innerHTML =
+              '<th class="format-col">Audio-ID</th><th>MP3</th>';
+            if (legendExtra) legendExtra.textContent = '· Zelle anklicken → Player (Audio)';
+          } else {
+            head.innerHTML =
+              '<th class="format-col">Rendition</th><th>MP4</th><th>HLS</th><th>DASH</th>';
+            if (legendExtra) legendExtra.textContent = '· Zelle anklicken → Player';
+          }
+        }
+
         function appendGroupRowIfNeeded(tbody, currentGroup, newGroup) {
           if (currentGroup === newGroup) return newGroup;
           const tr = document.createElement('tr');
           tr.className = 'group-row';
           const td = document.createElement('td');
-          td.colSpan = 4;
+          td.colSpan = matrixColspan();
           td.textContent = newGroup;
           tr.appendChild(td);
           tbody.appendChild(tr);
           return newGroup;
         }
 
-        function parseTvId(input) {
-          if (!input) return null;
-          const normalized = normalizeTvIdInput(input);
-          const match = normalized.match(TV_ID_REGEX);
-          if (!match) return null;
-          const [, year, month, day, time, seq] = match;
-          return {
-            base: 'TV-' + year + month + day + '-' + time + '-' + seq,
-            year,
-            month,
-            day,
-            monthDay: month + day,
-            time,
-            seq,
-          };
+        function buildAuMp3Url(origin, parsed, broadcaster) {
+          const prefix = broadcaster + '/' + parsed.year + '/' + parsed.monthDay + '/';
+          return origin + '/' + prefix + parsed.base + '.mp3';
         }
 
         function buildUrlsForRendition(origin, parsed, broadcaster, rend) {
@@ -962,7 +1028,7 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
             return await fetchCheck(url);
           } catch (fetchErr) {
             try {
-              if (formatId === 'mp4') return await probeMp4(url);
+              if (formatId === 'mp4' || formatId === 'mp3') return await probeMp4(url);
               if (formatId === 'hls') return await probeHls(url);
               if (formatId === 'dash') return await probeDash(url);
             } catch (_) {}
@@ -975,14 +1041,41 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           }
         }
 
-        async function runCheck(tvId, broadcaster, onProgress) {
-          const parsed = parseTvId(tvId);
-          if (!parsed) {
-            throw new Error(
-              'Ungültige TV-ID. Erwartetes Format: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711)'
-            );
-          }
+        async function runCheckAu(parsed, broadcaster, onProgress) {
+          const bc = (broadcaster || 'ndr').trim();
+          const total = ENVIRONMENTS.length;
+          let done = 0;
+          const cache = {
+            contentType: 'au',
+            base: parsed.base,
+            parsed: parsed,
+            broadcaster: bc,
+            envs: {},
+          };
 
+          await Promise.all(
+            ENVIRONMENTS.map(async function (env) {
+              const url = buildAuMp3Url(env.origin, parsed, bc);
+              const result = await checkUrl(url, 'mp3');
+              done += 1;
+              if (onProgress) onProgress(done, total, env.name, 'mp3');
+              cache.envs[env.id] = {
+                name: env.name,
+                origin: env.origin,
+                audio: {
+                  meta: AUDIO_RENDITION_META,
+                  formats: {
+                    mp3: Object.assign({ url: url }, result),
+                  },
+                },
+              };
+            })
+          );
+
+          return cache;
+        }
+
+        async function runCheckTv(parsed, broadcaster, onProgress) {
           const bc = (broadcaster || 'ndr').trim();
           await Promise.all([
             ensureLib('hls').catch(function () {}),
@@ -997,6 +1090,7 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           let done = 0;
 
           const cache = {
+            contentType: 'tv',
             base: parsed.base,
             parsed: parsed,
             broadcaster: bc,
@@ -1043,6 +1137,18 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           return cache;
         }
 
+        async function runCheck(id, broadcaster, onProgress) {
+          const parsed = parseContentId(id);
+          if (!parsed) {
+            throw new Error(
+              'Ungültige ID. Video: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711). ' +
+                'Audio: AU-YYYYMMDD-NNNN-NNNN (z. B. AU-20260522-0003-3300).'
+            );
+          }
+          if (parsed.contentType === 'au') return runCheckAu(parsed, broadcaster, onProgress);
+          return runCheckTv(parsed, broadcaster, onProgress);
+        }
+
         /* ---- UI ---- */
         const form = document.getElementById('search-form');
         const tvidInput = document.getElementById('tvid');
@@ -1069,12 +1175,12 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
 
         if (location.protocol === 'file:') fileNotice.hidden = false;
 
-        function applyNormalizedTvIdInput() {
-          const parsed = parseTvId(tvidInput.value);
+        function applyNormalizedIdInput() {
+          const parsed = parseContentId(tvidInput.value);
           if (parsed) tvidInput.value = parsed.base;
         }
 
-        tvidInput.addEventListener('blur', applyNormalizedTvIdInput);
+        tvidInput.addEventListener('blur', applyNormalizedIdInput);
 
         initLraSelect();
 
@@ -1122,12 +1228,26 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           results.hidden = false;
           playerSection.hidden = true;
           envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
+          const parsed = parseContentId(tvidInput.value);
+          const mode = parsed ? parsed.contentType : 'tv';
+          setMatrixLayout(mode);
+          matrixBody.innerHTML = '';
+
+          if (mode === 'au') {
+            matrixBody.innerHTML =
+              '<tr><td class="format-cell"><span class="format-name">' +
+              (parsed ? parsed.base : '…') +
+              '</span><span class="format-ext">Audio · MP3</span></td>' +
+              '<td><span class="status loading">…</span></td></tr>';
+            return;
+          }
+
           let skGroup = null;
           getRenditions().forEach(function (rend) {
             if (rend.group !== skGroup) {
               skGroup = rend.group;
               matrixBody.innerHTML +=
-                '<tr class="group-row"><td colspan="4">' + rend.group + '</td></tr>';
+                '<tr class="group-row"><td colspan="' + matrixColspan(mode) + '">' + rend.group + '</td></tr>';
             }
             const cells = FORMATS.map(function () {
               return '<td><span class="status loading">…</span></td>';
@@ -1207,7 +1327,27 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
 
           envOriginHint.textContent = 'Origin (' + envData.name + '): ' + envData.origin;
 
+          setMatrixLayout(cache.contentType);
           matrixBody.innerHTML = '';
+
+          if (cache.contentType === 'au') {
+            const audio = envData.audio;
+            const info = audio.formats.mp3;
+            const tr = document.createElement('tr');
+            const labelTd = document.createElement('td');
+            labelTd.className = 'format-cell';
+            labelTd.innerHTML =
+              '<span class="format-name">' +
+              cache.base +
+              '</span><span class="format-ext">Audio · ' +
+              AUDIO_FORMAT.ext +
+              '</span>';
+            tr.appendChild(labelTd);
+            tr.appendChild(buildCompactCell(info, AUDIO_FORMAT, AUDIO_RENDITION_META));
+            matrixBody.appendChild(tr);
+            return;
+          }
+
           let lastGroup = null;
           getRenditions().forEach(function (rend) {
             const row = envData.renditions[rend.id];
@@ -1232,7 +1372,7 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
         form.addEventListener('submit', async function (e) {
           e.preventDefault();
           clearError();
-          applyNormalizedTvIdInput();
+          applyNormalizedIdInput();
           const tvId = tvidInput.value.trim();
           if (!tvId) return;
           setLoading(true);
@@ -1243,20 +1383,35 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
                 btnText.textContent = 'Prüfe ' + envName + ' · ' + rendId + ' (' + done + '/' + total + ')';
               }
             );
-            parseInfo.textContent =
-              'Erkannte ID: ' +
-              checkCache.base +
-              '  •  ' +
-              getActiveLra().label +
-              '  •  ' +
-              getRenditions().length +
-              ' Formate × 3 Auslieferungen  •  Pfad: /' +
-              checkCache.broadcaster +
-              '/' +
-              checkCache.parsed.year +
-              '/' +
-              checkCache.parsed.monthDay +
-              '/';
+            if (checkCache.contentType === 'au') {
+              parseInfo.textContent =
+                'Audio-ID: ' +
+                checkCache.base +
+                '  •  ' +
+                getActiveLra().label +
+                '  •  MP3  •  Pfad: /' +
+                checkCache.broadcaster +
+                '/' +
+                checkCache.parsed.year +
+                '/' +
+                checkCache.parsed.monthDay +
+                '/';
+            } else {
+              parseInfo.textContent =
+                'TV-ID: ' +
+                checkCache.base +
+                '  •  ' +
+                getActiveLra().label +
+                '  •  ' +
+                getRenditions().length +
+                ' Renditions × 3 Formate  •  Pfad: /' +
+                checkCache.broadcaster +
+                '/' +
+                checkCache.parsed.year +
+                '/' +
+                checkCache.parsed.monthDay +
+                '/';
+            }
             envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = false; });
             activeEnvId = 'dev';
             envTabs.querySelectorAll('.env-tab').forEach(function (t) {
@@ -1278,6 +1433,7 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
 
         /* ---- Player ---- */
         const video = document.getElementById('video');
+        const audio = document.getElementById('audio');
         const playerTitle = document.getElementById('player-title');
         const playerStatusLine = document.getElementById('player-status-line');
         const playerError = document.getElementById('player-error');
@@ -1331,8 +1487,12 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
         function teardownPlayer() {
           if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
           if (dashInstance) { try { dashInstance.reset(); } catch (_) {} dashInstance = null; }
+          video.hidden = false;
+          audio.hidden = true;
           video.removeAttribute('src');
           video.load();
+          audio.removeAttribute('src');
+          audio.load();
         }
 
         function showPlayerError(msg) {
@@ -1372,11 +1532,21 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
           teardownPlayer();
           playerError.hidden = true;
 
-          if (type === 'mp4') {
+          if (type === 'mp3') {
+            video.hidden = true;
+            audio.hidden = false;
+            audio.src = url;
+            audio.load();
+            audio.play().catch(function () {});
+          } else if (type === 'mp4') {
+            audio.hidden = true;
+            video.hidden = false;
             video.src = url;
             video.load();
             video.play().catch(function () {});
           } else if (type === 'hls') {
+            audio.hidden = true;
+            video.hidden = false;
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
               video.src = url;
               video.load();
@@ -1392,6 +1562,8 @@ const LRA_CATALOG = {"version": "1.1", "source": "renditions.xlsx", "lras": {"nd
               showPlayerError('HLS wird von diesem Browser nicht unterstützt.');
             }
           } else if (type === 'dash') {
+            audio.hidden = true;
+            video.hidden = false;
             if (window.dashjs) {
               dashInstance = window.dashjs.MediaPlayer().create();
               dashInstance.initialize(video, url, true);

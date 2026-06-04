@@ -17,6 +17,7 @@
   - `lib/renditions-catalog.json`
   - eingebetteten Katalog in `origin-availability-checker.html`
 - Metadaten je Format: Bezeichnung, Profil-Tag, Endung, Auflösung, Codec, Bemerkung
+- **Audio-IDs** (`AU-YYYYMMDD-NNNN-NNNN`): eine Rendition (`.mp3`), vereinfachte Matrix (nur MP3-Spalte), HTML5-Audio-Player
 
 ### Quelle
 
