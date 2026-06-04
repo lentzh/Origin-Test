@@ -171,7 +171,48 @@
         font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
         margin-top: 2px;
       }
-      .cell-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+      .cell-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        min-width: 200px;
+      }
+      .ausspielpfad {
+        width: 100%;
+        text-align: left;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        word-break: break-all;
+      }
+      .ausspielpfad-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .ausspielpfad-path {
+        display: block;
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--text);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      }
+      .ausspielpfad-url {
+        display: block;
+        margin-top: 6px;
+        font-size: 10px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        word-break: break-all;
+      }
       .status {
         display: inline-flex;
         align-items: center;
@@ -690,6 +731,37 @@
           }).join('');
         }
 
+        function pathFromUrl(url) {
+          try {
+            return new URL(url).pathname;
+          } catch (_) {
+            return url;
+          }
+        }
+
+        function appendAusspielpfad(container, url) {
+          const box = document.createElement('div');
+          box.className = 'ausspielpfad';
+          box.title = url;
+
+          const label = document.createElement('span');
+          label.className = 'ausspielpfad-label';
+          label.textContent = 'Ausspielpfad';
+          box.appendChild(label);
+
+          const path = document.createElement('code');
+          path.className = 'ausspielpfad-path';
+          path.textContent = pathFromUrl(url);
+          box.appendChild(path);
+
+          const full = document.createElement('span');
+          full.className = 'ausspielpfad-url';
+          full.textContent = url;
+          box.appendChild(full);
+
+          container.appendChild(box);
+        }
+
         function renderResults(data) {
           matrixBody.innerHTML = '';
           data.formats.forEach(function (fmt) {
@@ -731,6 +803,7 @@
                 openPlayer(fmt.id, info.url, fmt.label + ' – ' + env.name);
               });
               inner.appendChild(playBtn);
+              appendAusspielpfad(inner, info.url);
               td.appendChild(inner);
               tr.appendChild(td);
             });
