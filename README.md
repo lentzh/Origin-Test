@@ -3,7 +3,8 @@
 Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen
 **(Dev / Stage / Prod)**.
 
-Repository: <https://github.com/lentzh/Origin-Test>
+Repository (ARD): <https://gitlab.ard.de/zapv/origin-checker>  
+Spiegel: <https://github.com/lentzh/Origin-Test>
 
 ## Standalone (empfohlen)
 
@@ -12,6 +13,7 @@ Datei **`origin-availability-checker.html`** im Projektroot öffnen (Doppelklick
 | Funktion | Beschreibung |
 | --- | --- |
 | TV-ID | Reine Basis-ID `TV-YYYYMMDD-HHMM-NNNN`; alle Qualitäts-Suffixe werden automatisch geprüft |
+| AU-ID | Audio `AU-YYYYMMDD-NNNN-NNNN` – nur MP3, vereinfachte Matrix |
 | Renditions | LRA NDR: 21 Formate aus `renditions.xlsx` (weitere LRAs vorbereitet) |
 | Formate | MP4 (progressiv), HLS (M3U8), DASH (MPD) |
 | Umgebungen | Dev / Stage / Prod per Tab |
@@ -63,5 +65,6 @@ npm start
 ├── lib/paths.js
 ├── public/                            # Frontend für Node-Variante
 ├── package.json
-└── README.md
+├── README.md
+└── AGENTS.md                        # Leitfaden für KI-Assistenten
 ```
