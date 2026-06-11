@@ -66,6 +66,17 @@ Danach `origin-availability-checker.html` und `lib/renditions-catalog.json` comm
 | `origin` | GitHub (privat/Spiegel) |
 | `gitlab` | `https://gitlab.ard.de/zapv/origin-checker` (ARD) |
 
+### GitLab-Push
+
+```bash
+export GITLAB_TOKEN="glpat-…"   # Scopes: api, read_api, write_repository
+./tools/gitlab-setup.sh
+```
+
+Bei **HTTP 403** auf Gruppe `zapv`: kein Lesezugriff auf die Gruppe oder falsche Namespace-ID.
+Dann Projekt manuell in GitLab anlegen und `PUSH_ONLY=1 ./tools/gitlab-setup.sh` ausführen,
+oder `NAMESPACE_ID=<id>` setzen (ID aus Gruppen-Einstellungen).
+
 ## Typische Aufgaben
 
 1. **Neue Rendition:** Zeile in `renditions.xlsx`, Import-Skript, REVISIONS.md ergänzen.
