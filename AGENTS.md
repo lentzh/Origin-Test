@@ -69,13 +69,12 @@ Danach `origin-availability-checker.html` und `lib/renditions-catalog.json` comm
 ### GitLab-Push
 
 ```bash
-export GITLAB_TOKEN="glpat-…"   # Scopes: api, read_api, write_repository
-./tools/gitlab-setup.sh
-```
+export GITLAB_TOKEN="glpat-…"
+./tools/gitlab-setup.sh          # PAT-Scope: api (empfohlen)
+PUSH_ONLY=1 ./tools/gitlab-setup.sh   # nur Git-Push, Scope: write_repository
 
-Bei **HTTP 403** auf Gruppe `zapv`: kein Lesezugriff auf die Gruppe oder falsche Namespace-ID.
-Dann Projekt manuell in GitLab anlegen und `PUSH_ONLY=1 ./tools/gitlab-setup.sh` ausführen,
-oder `NAMESPACE_ID=<id>` setzen (ID aus Gruppen-Einstellungen).
+Bei **insufficient_scope**: PAT neu anlegen mit Scope **api** (oder `read_user` + `read_api` + `write_repository`).
+Bei **HTTP 403** auf Gruppe `zapv`: Projekt manuell anlegen, dann `PUSH_ONLY=1`, oder `NAMESPACE_ID=<id>` setzen.
 
 ## Typische Aufgaben
 

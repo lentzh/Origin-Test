@@ -2,7 +2,8 @@
 # Projekt origin-checker in GitLab (Namespace zapv) anlegen und pushen.
 #
 # Voraussetzung: GITLAB_TOKEN (Personal Access Token)
-# Empfohlene Scopes: api, read_api, write_repository
+# Für Anlegen + Push: Scope „api“ (einfachste Option) oder read_user + read_api + write_repository
+# Nur Push (PUSH_ONLY=1): write_repository reicht
 #
 # Nutzung:
 #   export GITLAB_TOKEN="glpat-…"
@@ -24,7 +25,8 @@ PUSH_ONLY="${PUSH_ONLY:-0}"
 if [[ -z "${GITLAB_TOKEN:-}" ]]; then
   echo "Fehler: GITLAB_TOKEN ist nicht gesetzt." >&2
   echo "PAT erstellen: ${GITLAB_HOST}/-/user_settings/personal_access_tokens" >&2
-  echo "Scopes: api, read_api, write_repository" >&2
+  echo "Scopes (Anlegen+Push): api  — oder read_user, read_api, write_repository" >&2
+  echo "Scopes (nur Push):      write_repository  →  PUSH_ONLY=1 ./tools/gitlab-setup.sh" >&2
   exit 1
 fi
 
@@ -57,15 +59,41 @@ fail_api() {
   fi
 }
 
-echo "→ Token prüfen …"
-CODE="$(api_get "${GITLAB_HOST}/api/v4/user")"
-if [[ "${CODE}" != "200" ]]; then
+hint_insufficient_scope() {
+  if [[ ! -s "${TMP_BODY}" ]]; then
+    return
+  fi
+  python3 - "${TMP_BODY}" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+if data.get("error") != "insufficient_scope":
+    sys.exit(0)
+needed = data.get("scope", "")
+print("Der PAT hat zu wenig Rechte (insufficient_scope).", file=sys.stderr)
+if needed:
+    print(f"GitLab verlangt mindestens einen dieser Scopes: {needed}", file=sys.stderr)
+print("", file=sys.stderr)
+print("Neuen PAT anlegen und Scope „api“ aktivieren (deckt alles ab).", file=sys.stderr)
+print("Alternativ: read_user + read_api + write_repository", file=sys.stderr)
+print("Nur pushen (Projekt schon in GitLab): PUSH_ONLY=1 mit Scope write_repository", file=sys.stderr)
+PY
+}
+
+validate_api_token() {
+  echo "→ API-Token prüfen …"
+  CODE="$(api_get "${GITLAB_HOST}/api/v4/user")"
+  if [[ "${CODE}" == "200" ]]; then
+    USER_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["username"])' "${TMP_BODY}")"
+    echo "   Angemeldet als: ${USER_NAME}"
+    return 0
+  fi
   fail_api "Token-Validierung (/api/v4/user)" "${CODE}"
-  echo "Hinweis: Token ungültig, abgelaufen oder Scope 'read_api'/'api' fehlt." >&2
-  exit 1
-fi
-USER_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["username"])' "${TMP_BODY}")"
-echo "   Angemeldet als: ${USER_NAME}"
+  hint_insufficient_scope
+  return 1
+}
 
 resolve_namespace_id() {
   if [[ -n "${NAMESPACE_ID:-}" ]]; then
@@ -166,6 +194,34 @@ create_project() {
   return 1
 }
 
+push_to_gitlab() {
+  REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+  cd "${REPO_ROOT}"
+
+  REMOTE_URL="https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST#https://}/${GROUP_PATH}/${PROJECT_NAME}.git"
+  git remote remove gitlab 2>/dev/null || true
+  git remote add gitlab "${REMOTE_URL}"
+
+  echo "→ Push Branch ${BRANCH} als main …"
+  git push -u gitlab "${BRANCH}:main"
+
+  echo "→ Push Branch ${BRANCH} …"
+  git push -u gitlab "${BRANCH}" || true
+
+  echo ""
+  echo "Fertig: ${GITLAB_HOST}/${GROUP_PATH}/${PROJECT_NAME}"
+}
+
+if [[ "${PUSH_ONLY}" == "1" ]]; then
+  echo "→ PUSH_ONLY: API-Prüfung übersprungen (Scope write_repository reicht für Git-Push)."
+  push_to_gitlab
+  exit 0
+fi
+
+if ! validate_api_token; then
+  exit 1
+fi
+
 if [[ "${PUSH_ONLY}" != "1" ]]; then
   if project_exists; then
     echo "→ Projekt existiert bereits."
@@ -180,33 +236,12 @@ if [[ "${PUSH_ONLY}" != "1" ]]; then
       echo "  B) Namespace-ID aus Gruppen-Einstellungen ermitteln und setzen:" >&2
       echo "     NAMESPACE_ID=<id> ./tools/gitlab-setup.sh" >&2
       echo "  C) Gruppen-Maintainer um Developer+-Rolle in '${GROUP_PATH}' bitten." >&2
-      echo "  D) PAT mit Scopes api + read_api + write_repository prüfen (kein abgelaufenes Token)." >&2
+      echo "  D) Neuen PAT mit Scope „api“ anlegen (oder read_user + read_api + write_repository)." >&2
       exit 1
     fi
     echo "   namespace_id=${NS_ID}"
     create_project "${NS_ID}" || exit 1
   fi
-else
-  echo "→ PUSH_ONLY: Projekt-Anlage übersprungen."
-  if ! project_exists; then
-    fail_api "Projekt vorhanden? (${GROUP_PATH}/${PROJECT_NAME})" "$(api_get "${GITLAB_HOST}/api/v4/projects/${GROUP_PATH}%2F${PROJECT_NAME}")"
-    echo "Projekt nicht gefunden. Bitte zuerst in GitLab anlegen oder PUSH_ONLY weglassen." >&2
-    exit 1
-  fi
 fi
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "${REPO_ROOT}"
-
-REMOTE_URL="https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST#https://}/${GROUP_PATH}/${PROJECT_NAME}.git"
-git remote remove gitlab 2>/dev/null || true
-git remote add gitlab "${REMOTE_URL}"
-
-echo "→ Push Branch ${BRANCH} als main …"
-git push -u gitlab "${BRANCH}:main"
-
-echo "→ Push Branch ${BRANCH} …"
-git push -u gitlab "${BRANCH}" || true
-
-echo ""
-echo "Fertig: ${GITLAB_HOST}/${GROUP_PATH}/${PROJECT_NAME}"
+push_to_gitlab
