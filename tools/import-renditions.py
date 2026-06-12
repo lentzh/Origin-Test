@@ -152,7 +152,7 @@ def main():
             "ndr": {
                 "id": "ndr",
                 "label": "LRA NDR",
-                "broadcaster": "ndr",
+                "broadcaster": "progressive",
                 "renditions": renditions,
             }
         },

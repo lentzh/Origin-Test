@@ -64,7 +64,7 @@ form.addEventListener('submit', async (e) => {
       return;
     }
 
-    parseInfo.textContent = `Erkannte ID: ${data.base}  •  Pfad: /${broadcasterInput.value.trim() || 'ndr'}/${data.parsed.year}/${data.parsed.monthDay}/`;
+    parseInfo.textContent = `Erkannte ID: ${data.base}  •  Pfad: /${broadcasterInput.value.trim() || 'progressive'}/${data.parsed.year}/${data.parsed.monthDay}/`;
     renderResults(data);
   } catch (err) {
     results.hidden = true;

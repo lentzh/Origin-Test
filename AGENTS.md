@@ -16,7 +16,7 @@ Leitfaden für KI-Assistenten (Cursor Agents) in diesem Repository.
 | Video | `TV-YYYYMMDD-HHMM-NNNN` | Alle Renditions aus Katalog × MP4 / HLS / DASH |
 | Audio | `AU-YYYYMMDD-NNNN-NNNN` | Nur `.mp3`, eine Spalte in der Matrix |
 
-Pfadmuster: `/{broadcaster}/{Jahr}/{MonatTag}/{ID}.{suffix}`
+Pfadmuster: `/progressive/{Jahr}/{MonatTag}/{ID}.{suffix}` (adaptiv: `/i/progressive/…`)
 
 ## Wichtige Dateien
 
