@@ -1,6 +1,6 @@
-# S3-Origin Verfügbarkeitscheck · Version 1.1
+# S3-Origin Verfügbarkeitscheck · Version 1.3
 
-Prüfung der Verfügbarkeit von Videoinhalten auf den ARD-MCDN S3-Origin-Umgebungen
+Prüfung der Verfügbarkeit von Video- und Audio-Inhalten auf den ARD-MCDN S3-Origin-Umgebungen
 **(Dev / Stage / Prod)**.
 
 Repository (ARD): <https://gitlab.ard.de/zapv/origin-checker>  
@@ -14,28 +14,33 @@ Datei **`origin-availability-checker.html`** im Projektroot öffnen (Doppelklick
 | --- | --- |
 | TV-ID | Reine Basis-ID `TV-YYYYMMDD-HHMM-NNNN`; alle Qualitäts-Suffixe werden automatisch geprüft |
 | AU-ID | Audio `AU-YYYYMMDD-NNNN-NNNN` – nur MP3, vereinfachte Matrix |
-| Renditions | LRA NDR: 21 Formate aus `renditions.xlsx` (weitere LRAs vorbereitet) |
-| Formate | MP4 (progressiv), HLS (M3U8), DASH (MPD) |
+| Auslieferung | In der **Kopfleiste** wählbar (Mehrfachauswahl): `progressive/`, `progressive_geo/`, `progressive_geo_dach/` |
+| Renditions | LRA NDR: 21 Formate aus `renditions.xlsx` |
+| Formate | MP4, HLS, DASH, MP3 (Audio) |
 | Umgebungen | Dev / Stage / Prod per Tab |
-| Übersicht | Kompakte Matrix mit ✓ / ✕ |
+| Übersicht | Kompakte Matrix mit ✓ / ✕, gruppiert nach Verzeichnis |
 | Player | Separater Bereich mit Ausspielpfad, Abspielen, Neu Laden |
 
-Revisionshistorie: **[REVISIONS.md](REVISIONS.md)** (V1.0 + V1.1). Katalog aktualisieren:
+Revisionshistorie: **[REVISIONS.md](REVISIONS.md)** (V1.0 – V1.3).
 
-```bash
-python3 tools/import-renditions.py
-```
+## Auslieferungsverzeichnisse (V1.3)
+
+| Option | Verzeichnis | Bedeutung |
+| --- | --- | --- |
+| Ohne GEO-Blocking | `progressive/` | Weltweit ohne GEO-Einschränkung |
+| Mit GEO-Blocking | `progressive_geo/` | Mit GEO-Blocking |
+| Nur GEO-DACH | `progressive_geo_dach/` | Nur DACH-Region |
+
+Mehrere Optionen gleichzeitig möglich – die Anwendung prüft dann alle gewählten Pfade.
 
 ## Node/Express-Variante (älterer Stand)
-
-Optional für serverseitige HTTP-Checks ohne Browser-CORS:
 
 ```bash
 npm install
 npm start
 ```
 
-→ <http://localhost:3000> (Frontend unter `public/` – funktional älter als die Standalone V1.0)
+→ <http://localhost:3000> (funktional hinter der Standalone)
 
 ## Origin-Umgebungen
 
@@ -45,26 +50,16 @@ npm start
 | Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
 | Prod | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de` |
 
-## Branches
-
-| Branch | Inhalt |
-| --- | --- |
-| `main` | Standalone HTML + REVISIONS.md + Node-Variante |
-| `standalone` | Entwicklungszweig der Standalone-Version (mit `main` synchron) |
-
 ## Projektstruktur
 
 ```
 .
-├── origin-availability-checker.html   # S3-Origin Verfügbarkeitscheck 1.1 (Standalone)
-├── renditions.xlsx                    # Renditions-Master LRA NDR
-├── lib/renditions-catalog.json        # Generierter Katalog (pro LRA)
-├── tools/import-renditions.py         # Excel → JSON + HTML einbetten
-├── REVISIONS.md                       # Revisionshistorie
-├── server.js                          # Express-Server (ältere Variante)
-├── lib/paths.js
-├── public/                            # Frontend für Node-Variante
-├── package.json
-├── README.md
-└── AGENTS.md                        # Leitfaden für KI-Assistenten
+├── origin-availability-checker.html   # Standalone V1.3
+├── renditions.xlsx
+├── lib/renditions-catalog.json
+├── tools/import-renditions.py
+├── tools/gitlab-setup.sh
+├── REVISIONS.md
+├── AGENTS.md
+└── README.md
 ```

@@ -4,87 +4,72 @@ Leitfaden für KI-Assistenten (Cursor Agents) in diesem Repository.
 
 ## Zweck
 
-**S3-Origin Verfügbarkeitscheck** (Version 1.1): Prüfung von Medien auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.
+**S3-Origin Verfügbarkeitscheck** (Version **1.3**): Prüfung von Video- und Audio-Medien auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.
 
-- **Standalone (primär):** `origin-availability-checker.html` – eine HTML-Datei, läuft im Browser ohne Server.
-- **Node/Express (sekundär):** `server.js` + `public/` – älterer Stand, nicht feature-parität zur Standalone.
+- **Standalone (primär):** `origin-availability-checker.html`
+- **Node/Express (sekundär):** älterer Stand, nicht feature-parität
 
-## Eingabe-IDs
+## Version 1.3 (aktuell)
 
-| Typ | Format | Prüfung |
+- **GEO-Auslieferung:** Mehrfachauswahl in der blauen Kopfleiste (Checkboxen)
+- Verzeichnisse: `progressive`, `progressive_geo`, `progressive_geo_dach`
+- Matrix und Prüflogik iterieren über alle gewählten Verzeichnisse
+
+## Auslieferungsverzeichnisse
+
+| ID | Pfad-Segment | Bedeutung |
 | --- | --- | --- |
-| Video | `TV-YYYYMMDD-HHMM-NNNN` | Alle Renditions aus Katalog × MP4 / HLS / DASH |
-| Audio | `AU-YYYYMMDD-NNNN-NNNN` | Nur `.mp3`, eine Spalte in der Matrix |
+| `progressive` | `progressive/` | Ohne GEO-Blocking |
+| `progressive_geo` | `progressive_geo/` | Mit GEO-Blocking |
+| `progressive_geo_dach` | `progressive_geo_dach/` | Nur GEO-DACH |
 
-Pfadmuster: `/progressive/{Jahr}/{MonatTag}/{ID}.{suffix}` (adaptiv: `/i/progressive/…`)
+Konstante in HTML: `DELIVERY_VARIANTS`. Auswahl: `getSelectedDeliveryVariants()`.
+
+## Pfadmuster
+
+`{pathSegment}` = eines der drei Verzeichnisse oben.
+
+| Format | URL-Muster |
+| --- | --- |
+| MP4 | `{origin}/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.{suffix}.mp4` |
+| HLS | `{origin}/i/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.,{tag},.mp4.csmil/master.m3u8` |
+| DASH | `{origin}/i/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.,{tag},.mp4.csmil/dash.mpd` |
+| MP3 | `{origin}/{pathSegment}/{Jahr}/{MonatTag}/{AU-ID}.mp3` |
+
+## Cache-Struktur (nach Prüfung)
+
+```
+cache.envs[envId].variants[variantId].renditions[rendId].formats[fmtId]
+cache.envs[envId].variants[variantId].formats.mp3   // Audio
+```
+
+`selectedSlot` enthält `variantId`, `rendId`, `fmtId`.
 
 ## Wichtige Dateien
 
 | Datei | Rolle |
 | --- | --- |
-| `origin-availability-checker.html` | Hauptanwendung (UI, Prüflogik, eingebetteter Katalog) |
-| `renditions.xlsx` | Master-Tabelle Renditions LRA NDR |
-| `tools/import-renditions.py` | Excel → `lib/renditions-catalog.json` + Einbettung in HTML |
-| `lib/renditions-catalog.json` | Generierter Katalog (`LRA_CATALOG.lras`) |
-| `REVISIONS.md` | Versionshistorie |
-
-## Renditions-Katalog aktualisieren
-
-```bash
-python3 tools/import-renditions.py
-```
-
-Danach `origin-availability-checker.html` und `lib/renditions-catalog.json` committen. Katalog-Marker in HTML: `/* CATALOG_START */` … `/* CATALOG_END */`.
+| `origin-availability-checker.html` | Hauptanwendung |
+| `REVISIONS.md` | Release-Notes |
+| `tools/import-renditions.py` | Katalog-Import |
 
 ## Entwicklungsregeln
 
-- **Minimale Diffs:** Standalone-HTML ist die Quelle der Wahrheit für neue Features.
-- **Keine Over-Engineering:** Bestehende Konventionen in der HTML-Datei beibehalten (Vanilla JS, keine Build-Pipeline).
-- **LRA-Modell:** Katalog unter `LRA_CATALOG.lras`; neue LRAs in Excel + Import-Skript erweitern.
-- **Sprache:** Nutzerkommunikation und UI-Texte auf Deutsch.
-- **Commits:** Nur auf ausdrückliche Anfrage; keine Secrets (`.env`, Tokens) committen.
-
-## Origin-URLs
-
-| Umgebung | Origin |
-| --- | --- |
-| Dev | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
-| Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
-| Prod | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de` |
-
-## Branches
-
-| Branch | Bedeutung |
-| --- | --- |
-| `main` | Stabiler Stand |
-| `standalone` | Entwicklungszweig Standalone (mit `main` synchron halten) |
+- Standalone-HTML = Quelle der Wahrheit
+- GEO-Auswahl nur in der Kopfleiste, nicht in erweiterten Optionen
+- Bei Änderung der GEO-Auswahl: Cache invalidieren, Nutzer zur erneuten Prüfung auffordern
+- Version bei Releases: UI, `REVISIONS.md`, `README.md`, `AGENTS.md`, Katalog-`version`
+- UI-Texte auf Deutsch
 
 ## Git-Remotes
 
 | Remote | Ziel |
 | --- | --- |
-| `origin` | GitHub (privat/Spiegel) |
-| `gitlab` | `https://gitlab.ard.de/zapv/origin-checker` (ARD) |
-
-### GitLab-Push
-
-```bash
-export GITLAB_TOKEN="glpat-…"
-./tools/gitlab-setup.sh          # PAT-Scope: api (empfohlen)
-PUSH_ONLY=1 ./tools/gitlab-setup.sh   # nur Git-Push, Scope: write_repository
-
-Bei **insufficient_scope**: PAT neu anlegen mit Scope **api** (oder `read_user` + `read_api` + `write_repository`).
-Bei **HTTP 403** auf Gruppe `zapv`: Projekt manuell anlegen, dann `PUSH_ONLY=1`, oder `NAMESPACE_ID=<id>` setzen.
-
-## Typische Aufgaben
-
-1. **Neue Rendition:** Zeile in `renditions.xlsx`, Import-Skript, REVISIONS.md ergänzen.
-2. **Audio/Video-Logik:** Parser (`parseContentId`), `runCheckAu` / `runCheckTv`, Matrix-Layout (`setMatrixLayout`).
-3. **Player:** MP3 → `<audio>`, Video → `<video>` + hls.js/dash.js bei Bedarf.
-4. **CORS-Hinweis:** Bei `file://` können Browser-Checks eingeschränkt sein – im UI dokumentiert.
+| `gitlab` | `https://gitlab.ard.de/zapv/origin-checker` |
+| `origin` | GitHub-Spiegel |
 
 ## Nicht tun
 
-- Node-Variante nicht automatisch auf Standalone-Parität bringen, außer explizit gewünscht.
-- `node_modules/` nicht committen.
-- Große Refactorings der monolithischen HTML ohne klaren Auftrag.
+- Pfad-Segment nicht auf `ndr` zurücksetzen
+- Node-Variante nicht ohne Auftrag auf Standalone-Parität bringen
+- Secrets committen
