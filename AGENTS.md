@@ -1,75 +1,62 @@
 # AGENTS.md – origin-checker
 
-Leitfaden für KI-Assistenten (Cursor Agents) in diesem Repository.
+Leitfaden für KI-Assistenten (Cursor Agents).
 
-## Zweck
+## Version 1.4 (aktuell)
 
-**S3-Origin Verfügbarkeitscheck** (Version **1.3**): Prüfung von Video- und Audio-Medien auf den ARD-MCDN S3-Origin-Umgebungen Dev, Stage und Prod.
+**S3-Origin Verfügbarkeitscheck** – Standalone in `origin-availability-checker.html`.
 
-- **Standalone (primär):** `origin-availability-checker.html`
-- **Node/Express (sekundär):** älterer Stand, nicht feature-parität
+### Wichtig
 
-## Version 1.3 (aktuell)
+- **Eine Umgebung pro Lauf:** Nutzer wählt Dev, Stage oder Prod **vor** dem Start (`getSelectedEnvironment()`)
+- **GEO-Verzeichnisse:** Mehrfachauswahl in Kopfleiste (`getSelectedDeliveryVariants()`)
+- **Kein** paralleles Abfragen aller drei Origins mehr
 
-- **GEO-Auslieferung:** Mehrfachauswahl in der blauen Kopfleiste (Checkboxen)
-- Verzeichnisse: `progressive`, `progressive_geo`, `progressive_geo_dach`
-- Matrix und Prüflogik iterieren über alle gewählten Verzeichnisse
+### Prüflogik
 
-## Auslieferungsverzeichnisse
-
-| ID | Pfad-Segment | Bedeutung |
+| Konstante | Wert | Bedeutung |
 | --- | --- | --- |
-| `progressive` | `progressive/` | Ohne GEO-Blocking |
-| `progressive_geo` | `progressive_geo/` | Mit GEO-Blocking |
-| `progressive_geo_dach` | `progressive_geo_dach/` | Nur GEO-DACH |
+| `CHECK_TIMEOUT_MS` | 6000 | Timeout pro Request |
+| `CHECK_CONCURRENCY` | 5 | Max. parallele Checks |
 
-Konstante in HTML: `DELIVERY_VARIANTS`. Auswahl: `getSelectedDeliveryVariants()`.
+- `mapPool()` – Worker-Pool für begrenzte Parallelität
+- HLS/DASH: `fetchTextCheck` / Manifest (nicht hls.js/dash.js für Checks)
+- MP3: `probeAudio()` (nicht `probeMp4`)
+- Player nutzt weiterhin hls.js/dash.js bei Wiedergabe
 
-## Pfadmuster
+### Cache-Struktur (V1.4)
 
-`{pathSegment}` = eines der drei Verzeichnisse oben.
-
-| Format | URL-Muster |
-| --- | --- |
-| MP4 | `{origin}/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.{suffix}.mp4` |
-| HLS | `{origin}/i/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.,{tag},.mp4.csmil/master.m3u8` |
-| DASH | `{origin}/i/{pathSegment}/{Jahr}/{MonatTag}/{TV-ID}.,{tag},.mp4.csmil/dash.mpd` |
-| MP3 | `{origin}/{pathSegment}/{Jahr}/{MonatTag}/{AU-ID}.mp3` |
-
-## Cache-Struktur (nach Prüfung)
-
-```
-cache.envs[envId].variants[variantId].renditions[rendId].formats[fmtId]
-cache.envs[envId].variants[variantId].formats.mp3   // Audio
+```javascript
+cache = {
+  contentType: 'tv' | 'au',
+  env: { id, name, origin },
+  deliveryVariants: ['progressive', ...],
+  variants: {
+    progressive: { renditions: { ... } },  // TV
+    // oder formats: { mp3: ... }          // AU
+  }
+}
 ```
 
-`selectedSlot` enthält `variantId`, `rendId`, `fmtId`.
+**Nicht mehr:** `cache.envs[envId]` mit drei Umgebungen.
 
-## Wichtige Dateien
+### Auslieferungsverzeichnisse
 
-| Datei | Rolle |
+| ID | Pfad |
 | --- | --- |
-| `origin-availability-checker.html` | Hauptanwendung |
-| `REVISIONS.md` | Release-Notes |
-| `tools/import-renditions.py` | Katalog-Import |
+| `progressive` | Ohne GEO-Blocking |
+| `progressive_geo` | Mit GEO-Blocking |
+| `progressive_geo_dach` | Nur GEO-DACH |
 
-## Entwicklungsregeln
+### Pfadmuster
 
-- Standalone-HTML = Quelle der Wahrheit
-- GEO-Auswahl nur in der Kopfleiste, nicht in erweiterten Optionen
-- Bei Änderung der GEO-Auswahl: Cache invalidieren, Nutzer zur erneuten Prüfung auffordern
-- Version bei Releases: UI, `REVISIONS.md`, `README.md`, `AGENTS.md`, Katalog-`version`
-- UI-Texte auf Deutsch
+`{origin}/{pathSegment}/{Jahr}/{MonatTag}/{ID}…`
 
-## Git-Remotes
+### Bei Releases anpassen
 
-| Remote | Ziel |
-| --- | --- |
-| `gitlab` | `https://gitlab.ard.de/zapv/origin-checker` |
-| `origin` | GitHub-Spiegel |
+UI-Version, `REVISIONS.md`, `README.md`, `AGENTS.md`, Katalog-`version` in `import-renditions.py`.
 
-## Nicht tun
+### Git
 
-- Pfad-Segment nicht auf `ndr` zurücksetzen
-- Node-Variante nicht ohne Auftrag auf Standalone-Parität bringen
-- Secrets committen
+- `gitlab` → `gitlab.ard.de/zapv/origin-checker`
+- `origin` → GitHub-Spiegel

@@ -1,6 +1,6 @@
 {
   "name": "origin-availability-checker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Web-App zur Pr\u00fcfung der Verf\u00fcgbarkeit von Videoinhalten (MP4/HLS/DASH) \u00fcber die ARD-MCDN Origin-Umgebungen Dev/Stage/Prod.",
   "type": "module",
   "main": "server.js",

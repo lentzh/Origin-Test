@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>S3-Origin Verfügbarkeitscheck 1.3</title>
+    <title>S3-Origin Verfügbarkeitscheck 1.4</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <style>
       :root {
@@ -536,36 +536,75 @@
         background: var(--blue-hover);
         color: var(--text-inverse);
       }
-      .env-tabs {
-        display: flex;
-        gap: 0;
-        margin-bottom: 16px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
-        background: var(--white);
-      }
-      .env-tab {
-        flex: 1;
-        padding: 12px 16px;
+      .env-picker {
+        margin-bottom: 20px;
+        padding: 0;
         border: none;
-        background: var(--cream);
-        color: var(--text);
-        font-size: 14px;
-        font-weight: 600;
+      }
+      .env-radio-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .env-option {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
         cursor: pointer;
-        transition: background 0.15s, color 0.15s;
-        border-right: 1px solid var(--border);
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        background: var(--white);
+        flex: 1 1 120px;
+        user-select: none;
+        transition: border-color 0.15s, background 0.15s;
       }
-      .env-tab:last-child { border-right: none; }
-      .env-tab:hover:not(:disabled) { background: rgba(38, 113, 198, 0.12); }
-      .env-tab.active {
-        background: var(--navy);
-        color: var(--text-inverse);
+      .env-option:hover { border-color: rgba(38, 113, 198, 0.45); }
+      .env-option input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
       }
-      .env-tab:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
+      .env-option-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(12, 23, 84, 0.35);
+        flex-shrink: 0;
+        position: relative;
+      }
+      .env-option input:checked + .env-option-dot {
+        border-color: var(--blue);
+      }
+      .env-option input:checked + .env-option-dot::after {
+        content: '';
+        position: absolute;
+        inset: 3px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .env-option input:focus-visible + .env-option-dot {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      .env-option:has(input:checked) {
+        border-color: var(--blue);
+        background: rgba(38, 113, 198, 0.08);
+      }
+      .env-option-label { font-size: 14px; font-weight: 600; color: var(--text); }
+      .env-badge {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(38, 113, 198, 0.12);
+        color: var(--navy);
+        margin-bottom: 8px;
       }
       .env-origin-hint {
         margin: 0 0 14px;
@@ -605,7 +644,7 @@
       }
       @media (max-width: 600px) {
         .advanced-grid { grid-template-columns: 1fr; }
-        .env-tab { padding: 10px 8px; font-size: 13px; }
+        .env-option { flex: 1 1 100%; }
         .topbar-inner { flex-wrap: wrap; }
         .topbar-geo { padding: 10px 16px 12px; }
         .geo-option { flex: 1 1 100%; }
@@ -623,7 +662,7 @@
             <p class="subtitle">(Dev / Stage / Prod)</p>
           </div>
         </div>
-        <span class="brand-version">Version 1.3</span>
+        <span class="brand-version">Version 1.4</span>
       </div>
       <div class="topbar-geo" role="group" aria-label="Auslieferungsverzeichnis">
         <span class="topbar-geo-label">Auslieferung (Mehrfachauswahl)</span>
@@ -666,6 +705,26 @@
 
       <section class="search-card">
         <form id="search-form">
+          <fieldset class="env-picker">
+            <span class="field-label">Umgebung (vor der Prüfung wählen)</span>
+            <div class="env-radio-group" id="env-picker">
+              <label class="env-option" for="env-dev">
+                <input type="radio" id="env-dev" name="environment" value="dev" />
+                <span class="env-option-dot" aria-hidden="true"></span>
+                <span class="env-option-label">Dev</span>
+              </label>
+              <label class="env-option" for="env-stage">
+                <input type="radio" id="env-stage" name="environment" value="stage" />
+                <span class="env-option-dot" aria-hidden="true"></span>
+                <span class="env-option-label">Stage</span>
+              </label>
+              <label class="env-option" for="env-prod">
+                <input type="radio" id="env-prod" name="environment" value="prod" checked />
+                <span class="env-option-dot" aria-hidden="true"></span>
+                <span class="env-option-label">Prod</span>
+              </label>
+            </div>
+          </fieldset>
           <label class="field">
             <span class="field-label">TV-ID / AU-ID (Basis, ohne Endung)</span>
             <input
@@ -679,7 +738,8 @@
             <p class="field-hint">
               <strong>Video:</strong> <code>TV-YYYYMMDD-HHMM-NNNN</code> – alle Renditions (MP4/HLS/DASH) der LRA NDR.<br />
               <strong>Audio:</strong> <code>AU-YYYYMMDD-NNNN-NNNN</code> – nur <code>.mp3</code>, eine Spalte je Umgebung.<br />
-              <strong>Auslieferung:</strong> Verzeichnis(e) in der blauen Kopfleiste wählen (Mehrfachauswahl).
+              <strong>Auslieferung:</strong> Verzeichnis(e) in der blauen Kopfleiste (Mehrfachauswahl).<br />
+              <strong>Umgebung:</strong> Dev, Stage oder Prod vor dem Start wählen.
             </p>
           </label>
           <details class="advanced">
@@ -705,11 +765,6 @@
 
       <section id="results" class="results" hidden>
         <h2 class="section-title">Verfügbarkeitsübersicht</h2>
-        <nav class="env-tabs" id="env-tabs" aria-label="Umgebung">
-          <button type="button" class="env-tab active" data-env="dev">Dev</button>
-          <button type="button" class="env-tab" data-env="stage">Stage</button>
-          <button type="button" class="env-tab" data-env="prod">Prod</button>
-        </nav>
         <p id="env-origin-hint" class="env-origin-hint"></p>
         <p class="availability-legend">
           <span><span class="status ok">✓</span> verfügbar</span>
@@ -757,7 +812,15 @@
       <details class="revision-block">
         <summary>Revisionshistorie</summary>
         <div class="revision-content">
-          <p class="revision-meta"><strong>Version 1.3</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
+          <p class="revision-meta"><strong>Version 1.4</strong> · Standalone-HTML · S3-Origin Verfügbarkeitscheck</p>
+
+          <h3>Version 1.4</h3>
+          <ul>
+            <li>Umgebung (Dev / Stage / Prod) wird <strong>vor</strong> der Prüfung gewählt – keine parallele Abfrage aller Umgebungen.</li>
+            <li>Stabilere Verfügbarkeitsprüfung: begrenzte Parallelität, Manifest-Checks für HLS/DASH (ohne schwere Player-Instanzen).</li>
+            <li>MP3-Prüfung über Audio-Element statt Video-Tag.</li>
+            <li>Zuverlässige Timeouts (kein Hängen bei vielen Renditions).</li>
+          </ul>
 
           <h3>Version 1.3</h3>
           <ul>
@@ -800,7 +863,7 @@
             <li>Automatische Abfrage aller hinterlegten Renditions (AVC, HEVC, VP9 – siehe Katalog in <code>renditions.xlsx</code>).</li>
             <li>Drei Auslieferungsformate je Rendition: Progressive Download (MP4), Adaptive HLS (M3U8), Adaptive DASH (MPD).</li>
             <li>URL-Ableitung per Regex aus TV-ID, Datum und Verzeichnis (<code>/{verzeichnis}/JJJJ/MMTT/</code>).</li>
-            <li>Prüfung aller drei Umgebungen beim Start; Umschaltung Dev / Stage / Prod per Tab ohne erneuten Lauf.</li>
+            <li>Prüfung der gewählten Umgebung; Umschaltung Dev / Stage / Prod vor dem Start.</li>
             <li>Kompakte Übersicht mit grünem Haken (verfügbar) und rotem Kreuz (nicht verfügbar).</li>
             <li>HTTP-Prüfung im Browser (HEAD/GET), bei Bedarf Fallback über Video-, HLS- oder DASH-Probes.</li>
           </ul>
@@ -826,7 +889,8 @@
       (function () {
         'use strict';
 
-        const CHECK_TIMEOUT_MS = 8000;
+        const CHECK_TIMEOUT_MS = 6000;
+        const CHECK_CONCURRENCY = 5;
 
         const ENVIRONMENTS = [
           { id: 'dev', name: 'Dev', origin: 'https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de' },
@@ -867,7 +931,7 @@
         ];
 
         /* CATALOG_START */
-const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"ndr": {"id": "ndr", "label": "LRA NDR", "broadcaster": "progressive", "renditions": [{"id": "ao", "group": "Audio", "fileSuffix": "ao", "checkable": true, "label": "MP4 (nur Audio)", "profile": null, "desc": "Audio only", "resolution": "Audio only", "codec": null, "remark": "März 2013 bis Juni 2025", "fileExt": ".ao.mp4", "ard": null}, {"id": "avc270", "group": "AVC (H.264)", "fileSuffix": "mn", "checkable": true, "label": "MP4 (WebM niedrig)", "profile": "avc270", "desc": "avc270 · 480x270 · H.264", "resolution": "480x270", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".mn.mp4", "ard": null}, {"id": "avc360", "group": "AVC (H.264)", "fileSuffix": "ln", "checkable": true, "label": "MP4 (WebL niedrig)", "profile": "avc360", "desc": "avc360 · 640x360 · H.264", "resolution": "640x360", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".ln.mp4", "ard": null}, {"id": "avc540", "group": "AVC (H.264)", "fileSuffix": "hq", "checkable": true, "label": "MP4 (WebL)", "profile": "avc540", "desc": "avc540 · 960x540 · H.264", "resolution": "960x540", "codec": "H.264", "remark": null, "fileExt": ".hq.mp4", "ard": null}, {"id": "avc720", "group": "AVC (H.264)", "fileSuffix": "hd", "checkable": true, "label": "MP4 (WebXL)", "profile": "avc720", "desc": "avc720 · 1280x720 · H.264", "resolution": "1280x720", "codec": "H.264", "remark": "seit März 2015", "fileExt": ".hd.mp4", "ard": null}, {"id": "avc1080", "group": "AVC (H.264)", "fileSuffix": "1080", "checkable": true, "label": "MP4 (Full-HD 1080p)", "profile": "avc1080", "desc": "avc1080 · 1920x1080 · H.264", "resolution": "1920x1080", "codec": "H.264", "remark": "seit Mai 2022", "fileExt": ".1080.mp4", "ard": null}, {"id": "hevcsdr540", "group": "HEVC", "fileSuffix": "hq.hevc", "checkable": true, "label": "HEVC (WebL)", "profile": "hevcsdr540", "desc": "hevcsdr540 · 960x540 · HEVC", "resolution": "960x540", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hq.hevc.mp4", "ard": null}, {"id": "hevcsdr720", "group": "HEVC", "fileSuffix": "hd.hevc", "checkable": true, "label": "HEVC (WebXL)", "profile": "hevcsdr720", "desc": "hevcsdr720 · 1280x720 · HEVC", "resolution": "1280x720", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hd.hevc.mp4", "ard": null}, {"id": "hevcsdr1080", "group": "HEVC", "fileSuffix": "1080.hevc", "checkable": true, "label": "HEVC (Full-HD 1080p)", "profile": "hevcsdr1080", "desc": "hevcsdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".1080.hevc.mp4", "ard": null}, {"id": "hevchdr1080", "group": "HEVC", "fileSuffix": "1080.hdr.hevc", "checkable": true, "label": "HEVC-HDR (Full-HD 1080p)", "profile": "hevchdr1080", "desc": "hevchdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1080.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr1440", "group": "HEVC", "fileSuffix": "1440.hdr.hevc", "checkable": true, "label": "HEVC-HDR (1440)", "profile": "hevchdr1440", "desc": "hevchdr1440 · 2560x1440 · HEVC", "resolution": "2560x1440", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1440.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr2160", "group": "HEVC", "fileSuffix": "2160.hdr.hevc", "checkable": true, "label": "HEVC-HDR (2160)", "profile": "hevchdr2160", "desc": "hevchdr2160 · 3180x2160 · HEVC", "resolution": "3180x2160", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".2160.hdr.hevc.mp4", "ard": null}, {"id": "vp9sdr540", "group": "VP9", "fileSuffix": "hq.vp9", "checkable": true, "label": "VP9 (WebL)", "profile": "vp9sdr540", "desc": "vp9sdr540 · 960x540 · VP9", "resolution": "960x540", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hq.vp9.mp4", "ard": null}, {"id": "vp9sdr720", "group": "VP9", "fileSuffix": "hd.vp9", "checkable": true, "label": "VP9 (WebXL)", "profile": "vp9sdr720", "desc": "vp9sdr720 · 1280x720 · VP9", "resolution": "1280x720", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hd.vp9.mp4", "ard": null}, {"id": "vp9sdr1080", "group": "VP9", "fileSuffix": "1080.vp9", "checkable": true, "label": "VP9 (Full-HD 1080p)", "profile": "vp9sdr1080", "desc": "vp9sdr1080 · 1920x1080 · VP9", "resolution": "1920x1080", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".1080.vp9.mp4", "ard": null}, {"id": "lo", "group": "AVC (H.264)", "fileSuffix": "lo", "checkable": true, "label": "MP4 (WebS)", "profile": null, "desc": "320x180 · H.264", "resolution": "320x180", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lo.mp4", "ard": null}, {"id": "hi", "group": "AVC (H.264)", "fileSuffix": "hi", "checkable": true, "label": "MP4 (WebM)", "profile": null, "desc": "512x288 · H.264", "resolution": "512x288", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".hi.mp4", "ard": null}, {"id": "lp", "group": "AVC (H.264)", "fileSuffix": "lp", "checkable": true, "label": "MP4 (WebL+)", "profile": null, "desc": "720x576 · H.264", "resolution": "720x576", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lp.mp4", "ard": null}, {"id": "flash-low", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash LOW", "profile": null, "desc": "Flash LOW", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-high", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash HIGH", "profile": null, "desc": "Flash HIGH", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-l-", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash (L)", "profile": null, "desc": "Flash (L)", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}]}}};
+const LRA_CATALOG = {"version": "1.4", "source": "renditions.xlsx", "lras": {"ndr": {"id": "ndr", "label": "LRA NDR", "broadcaster": "progressive", "renditions": [{"id": "ao", "group": "Audio", "fileSuffix": "ao", "checkable": true, "label": "MP4 (nur Audio)", "profile": null, "desc": "Audio only", "resolution": "Audio only", "codec": null, "remark": "März 2013 bis Juni 2025", "fileExt": ".ao.mp4", "ard": null}, {"id": "avc270", "group": "AVC (H.264)", "fileSuffix": "mn", "checkable": true, "label": "MP4 (WebM niedrig)", "profile": "avc270", "desc": "avc270 · 480x270 · H.264", "resolution": "480x270", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".mn.mp4", "ard": null}, {"id": "avc360", "group": "AVC (H.264)", "fileSuffix": "ln", "checkable": true, "label": "MP4 (WebL niedrig)", "profile": "avc360", "desc": "avc360 · 640x360 · H.264", "resolution": "640x360", "codec": "H.264", "remark": "seit 12.11.2014", "fileExt": ".ln.mp4", "ard": null}, {"id": "avc540", "group": "AVC (H.264)", "fileSuffix": "hq", "checkable": true, "label": "MP4 (WebL)", "profile": "avc540", "desc": "avc540 · 960x540 · H.264", "resolution": "960x540", "codec": "H.264", "remark": null, "fileExt": ".hq.mp4", "ard": null}, {"id": "avc720", "group": "AVC (H.264)", "fileSuffix": "hd", "checkable": true, "label": "MP4 (WebXL)", "profile": "avc720", "desc": "avc720 · 1280x720 · H.264", "resolution": "1280x720", "codec": "H.264", "remark": "seit März 2015", "fileExt": ".hd.mp4", "ard": null}, {"id": "avc1080", "group": "AVC (H.264)", "fileSuffix": "1080", "checkable": true, "label": "MP4 (Full-HD 1080p)", "profile": "avc1080", "desc": "avc1080 · 1920x1080 · H.264", "resolution": "1920x1080", "codec": "H.264", "remark": "seit Mai 2022", "fileExt": ".1080.mp4", "ard": null}, {"id": "hevcsdr540", "group": "HEVC", "fileSuffix": "hq.hevc", "checkable": true, "label": "HEVC (WebL)", "profile": "hevcsdr540", "desc": "hevcsdr540 · 960x540 · HEVC", "resolution": "960x540", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hq.hevc.mp4", "ard": null}, {"id": "hevcsdr720", "group": "HEVC", "fileSuffix": "hd.hevc", "checkable": true, "label": "HEVC (WebXL)", "profile": "hevcsdr720", "desc": "hevcsdr720 · 1280x720 · HEVC", "resolution": "1280x720", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".hd.hevc.mp4", "ard": null}, {"id": "hevcsdr1080", "group": "HEVC", "fileSuffix": "1080.hevc", "checkable": true, "label": "HEVC (Full-HD 1080p)", "profile": "hevcsdr1080", "desc": "hevcsdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "seit Mai 2022", "fileExt": ".1080.hevc.mp4", "ard": null}, {"id": "hevchdr1080", "group": "HEVC", "fileSuffix": "1080.hdr.hevc", "checkable": true, "label": "HEVC-HDR (Full-HD 1080p)", "profile": "hevchdr1080", "desc": "hevchdr1080 · 1920x1080 · HEVC", "resolution": "1920x1080", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1080.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr1440", "group": "HEVC", "fileSuffix": "1440.hdr.hevc", "checkable": true, "label": "HEVC-HDR (1440)", "profile": "hevchdr1440", "desc": "hevchdr1440 · 2560x1440 · HEVC", "resolution": "2560x1440", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".1440.hdr.hevc.mp4", "ard": null}, {"id": "hevchdr2160", "group": "HEVC", "fileSuffix": "2160.hdr.hevc", "checkable": true, "label": "HEVC-HDR (2160)", "profile": "hevchdr2160", "desc": "hevchdr2160 · 3180x2160 · HEVC", "resolution": "3180x2160", "codec": "HEVC", "remark": "nur bei UHD-HDR", "fileExt": ".2160.hdr.hevc.mp4", "ard": null}, {"id": "vp9sdr540", "group": "VP9", "fileSuffix": "hq.vp9", "checkable": true, "label": "VP9 (WebL)", "profile": "vp9sdr540", "desc": "vp9sdr540 · 960x540 · VP9", "resolution": "960x540", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hq.vp9.mp4", "ard": null}, {"id": "vp9sdr720", "group": "VP9", "fileSuffix": "hd.vp9", "checkable": true, "label": "VP9 (WebXL)", "profile": "vp9sdr720", "desc": "vp9sdr720 · 1280x720 · VP9", "resolution": "1280x720", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".hd.vp9.mp4", "ard": null}, {"id": "vp9sdr1080", "group": "VP9", "fileSuffix": "1080.vp9", "checkable": true, "label": "VP9 (Full-HD 1080p)", "profile": "vp9sdr1080", "desc": "vp9sdr1080 · 1920x1080 · VP9", "resolution": "1920x1080", "codec": "VP9", "remark": "ab Mai 2022, später weg", "fileExt": ".1080.vp9.mp4", "ard": null}, {"id": "lo", "group": "AVC (H.264)", "fileSuffix": "lo", "checkable": true, "label": "MP4 (WebS)", "profile": null, "desc": "320x180 · H.264", "resolution": "320x180", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lo.mp4", "ard": null}, {"id": "hi", "group": "AVC (H.264)", "fileSuffix": "hi", "checkable": true, "label": "MP4 (WebM)", "profile": null, "desc": "512x288 · H.264", "resolution": "512x288", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".hi.mp4", "ard": null}, {"id": "lp", "group": "AVC (H.264)", "fileSuffix": "lp", "checkable": true, "label": "MP4 (WebL+)", "profile": null, "desc": "720x576 · H.264", "resolution": "720x576", "codec": "H.264", "remark": "weggefallen 2021", "fileExt": ".lp.mp4", "ard": null}, {"id": "flash-low", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash LOW", "profile": null, "desc": "Flash LOW", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-high", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash HIGH", "profile": null, "desc": "Flash HIGH", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}, {"id": "flash-l-", "group": "Flash (historisch)", "fileSuffix": null, "checkable": false, "label": "Flash (L)", "profile": null, "desc": "Flash (L)", "resolution": null, "codec": null, "remark": "nicht mehr im Einsatz", "fileExt": null, "ard": null}]}}};
         /* CATALOG_END */
 
         function getActiveLraId() {
@@ -876,6 +940,30 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
 
         function getActiveLra() {
           return (LRA_CATALOG.lras && LRA_CATALOG.lras[getActiveLraId()]) || LRA_CATALOG.lras.ndr;
+        }
+
+        function getSelectedEnvironment() {
+          const el = document.querySelector('input[name="environment"]:checked');
+          const id = el ? el.value : 'prod';
+          for (let i = 0; i < ENVIRONMENTS.length; i++) {
+            if (ENVIRONMENTS[i].id === id) return ENVIRONMENTS[i];
+          }
+          return ENVIRONMENTS[ENVIRONMENTS.length - 1];
+        }
+
+        async function mapPool(items, limit, worker) {
+          if (!items.length) return;
+          let index = 0;
+          async function runner() {
+            while (index < items.length) {
+              const i = index++;
+              await worker(items[i], i);
+            }
+          }
+          const runners = [];
+          const n = Math.min(limit, items.length);
+          for (let r = 0; r < n; r++) runners.push(runner());
+          await Promise.all(runners);
         }
 
         function getDeliveryVariant(id) {
@@ -1083,26 +1171,55 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
           });
         }
 
+        async function fetchWithTimeout(url, options) {
+          const controller = new AbortController();
+          const timer = setTimeout(function () { controller.abort(); }, CHECK_TIMEOUT_MS);
+          try {
+            return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+          } finally {
+            clearTimeout(timer);
+          }
+        }
+
         async function fetchCheck(url) {
           const tryReq = async function (method, headers) {
-            const res = await fetch(url, {
+            return fetchWithTimeout(url, {
               method: method,
               headers: headers,
               mode: 'cors',
               redirect: 'follow',
             });
-            return res;
           };
 
-          let res = await withTimeout(tryReq('HEAD', {}), CHECK_TIMEOUT_MS);
+          let res = await tryReq('HEAD', {});
           if (!res.ok || res.status === 405 || res.status === 403) {
-            res = await withTimeout(tryReq('GET', { Range: 'bytes=0-0' }), CHECK_TIMEOUT_MS);
+            res = await tryReq('GET', { Range: 'bytes=0-0' });
           }
           return {
             available: res.status >= 200 && res.status < 400,
             status: res.status,
             error: null,
             method: 'fetch',
+          };
+        }
+
+        async function fetchTextCheck(url, validate) {
+          const res = await fetchWithTimeout(url, { method: 'GET', mode: 'cors' });
+          if (!res.ok) {
+            return {
+              available: false,
+              status: res.status,
+              error: 'HTTP ' + res.status,
+              method: 'fetch',
+            };
+          }
+          const text = await res.text();
+          const ok = validate(text);
+          return {
+            available: ok,
+            status: res.status,
+            error: ok ? null : 'Ungültiges Manifest',
+            method: 'manifest',
           };
         }
 
@@ -1126,6 +1243,40 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
             v.onloadedmetadata = function () { done(true); };
             v.onerror = function () { done(false, 'nicht abrufbar'); };
             v.src = url;
+          });
+        }
+
+        function probeAudio(url) {
+          return new Promise(function (resolve) {
+            const a = document.createElement('audio');
+            a.preload = 'metadata';
+            const done = function (available, detail) {
+              clearTimeout(timer);
+              a.removeAttribute('src');
+              a.load();
+              resolve({
+                available: available,
+                status: available ? 200 : 0,
+                error: available ? null : detail,
+                method: 'audio',
+              });
+            };
+            const timer = setTimeout(function () { done(false, 'timeout'); }, CHECK_TIMEOUT_MS);
+            a.onloadedmetadata = function () { done(true); };
+            a.onerror = function () { done(false, 'nicht abrufbar'); };
+            a.src = url;
+          });
+        }
+
+        function probeHlsManifest(url) {
+          return fetchTextCheck(url, function (text) {
+            return /#EXTM3U/i.test(text);
+          });
+        }
+
+        function probeDashManifest(url) {
+          return fetchTextCheck(url, function (text) {
+            return /<MPD[\s>]/i.test(text) || /type=["']static["']/i.test(text);
           });
         }
 
@@ -1208,144 +1359,142 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
 
         async function checkUrl(url, formatId) {
           try {
+            if (formatId === 'hls') return await probeHlsManifest(url);
+            if (formatId === 'dash') return await probeDashManifest(url);
             return await fetchCheck(url);
           } catch (fetchErr) {
             try {
-              if (formatId === 'mp4' || formatId === 'mp3') return await probeMp4(url);
-              if (formatId === 'hls') return await probeHls(url);
-              if (formatId === 'dash') return await probeDash(url);
+              if (formatId === 'mp3') return await probeAudio(url);
+              if (formatId === 'mp4') return await probeMp4(url);
+              if (formatId === 'hls') return await probeHlsManifest(url);
+              if (formatId === 'dash') return await probeDashManifest(url);
             } catch (_) {}
             return {
               available: false,
               status: 0,
-              error: fetchErr.message === 'timeout' ? 'timeout' : 'CORS/Netzwerk',
+              error:
+                fetchErr.name === 'AbortError' || fetchErr.message === 'timeout'
+                  ? 'timeout'
+                  : 'CORS/Netzwerk',
               method: '—',
             };
           }
         }
 
-        async function runCheckAu(parsed, variants, onProgress) {
-          const total = ENVIRONMENTS.length * variants.length;
-          let done = 0;
+        async function runCheckAu(parsed, variants, env, onProgress) {
+          const tasks = variants.map(function (variant) {
+            return {
+              variant: variant,
+              url: buildAuMp3Url(env.origin, parsed, variant.path),
+            };
+          });
+
           const cache = {
             contentType: 'au',
             base: parsed.base,
             parsed: parsed,
             deliveryVariants: variants.map(function (v) { return v.id; }),
-            envs: {},
+            env: { id: env.id, name: env.name, origin: env.origin },
+            variants: {},
           };
 
-          await Promise.all(
-            ENVIRONMENTS.map(async function (env) {
-              cache.envs[env.id] = {
-                name: env.name,
-                origin: env.origin,
-                variants: {},
-              };
-
-              await Promise.all(
-                variants.map(async function (variant) {
-                  const url = buildAuMp3Url(env.origin, parsed, variant.path);
-                  const result = await checkUrl(url, 'mp3');
-                  done += 1;
-                  if (onProgress) onProgress(done, total, env.name, variant.path);
-                  cache.envs[env.id].variants[variant.id] = {
-                    meta: AUDIO_RENDITION_META,
-                    formats: {
-                      mp3: Object.assign({ url: url }, result),
-                    },
-                  };
-                })
-              );
-            })
-          );
+          let done = 0;
+          await mapPool(tasks, CHECK_CONCURRENCY, async function (task) {
+            const result = await checkUrl(task.url, 'mp3');
+            cache.variants[task.variant.id] = {
+              meta: AUDIO_RENDITION_META,
+              formats: {
+                mp3: Object.assign({ url: task.url }, result),
+              },
+            };
+            done += 1;
+            if (onProgress) onProgress(done, tasks.length, env.name, task.variant.path);
+          });
 
           return cache;
         }
 
-        async function runCheckTv(parsed, variants, onProgress) {
-          await Promise.all([
-            ensureLib('hls').catch(function () {}),
-            ensureLib('dash').catch(function () {}),
-          ]);
-
+        async function runCheckTv(parsed, variants, env, onProgress) {
           const renditions = getRenditions();
-          const checkableRends = renditions.filter(function (r) {
-            return r.checkable && r.fileSuffix;
-          });
-          const total =
-            ENVIRONMENTS.length * variants.length * checkableRends.length * FORMATS.length;
-          let done = 0;
-
           const cache = {
             contentType: 'tv',
             base: parsed.base,
             parsed: parsed,
             deliveryVariants: variants.map(function (v) { return v.id; }),
-            envs: {},
+            env: { id: env.id, name: env.name, origin: env.origin },
+            variants: {},
           };
 
-          await Promise.all(
-            ENVIRONMENTS.map(async function (env) {
-              cache.envs[env.id] = {
-                name: env.name,
-                origin: env.origin,
-                variants: {},
+          variants.forEach(function (variant) {
+            cache.variants[variant.id] = { renditions: {} };
+            renditions.forEach(function (rend) {
+              const formats = {};
+              if (!rend.checkable || !rend.fileSuffix) {
+                FORMATS.forEach(function (fmt) {
+                  formats[fmt.id] = naFormatResult();
+                });
+              }
+              cache.variants[variant.id].renditions[rend.id] = {
+                meta: rend,
+                formats: formats,
               };
+            });
+          });
 
-              await Promise.all(
-                variants.map(async function (variant) {
-                  cache.envs[env.id].variants[variant.id] = { renditions: {} };
+          const tasks = [];
+          variants.forEach(function (variant) {
+            renditions.forEach(function (rend) {
+              if (!rend.checkable || !rend.fileSuffix) return;
+              const urls = buildUrlsForRendition(env.origin, parsed, variant.path, rend);
+              FORMATS.forEach(function (fmt) {
+                tasks.push({
+                  variantId: variant.id,
+                  variantPath: variant.path,
+                  rend: rend,
+                  fmt: fmt,
+                  url: urls[fmt.id],
+                });
+              });
+            });
+          });
 
-                  await Promise.all(
-                    renditions.map(async function (rend) {
-                      const formats = {};
-
-                      if (!rend.checkable || !rend.fileSuffix) {
-                        FORMATS.forEach(function (fmt) {
-                          formats[fmt.id] = naFormatResult();
-                        });
-                      } else {
-                        const urls = buildUrlsForRendition(env.origin, parsed, variant.path, rend);
-                        await Promise.all(
-                          FORMATS.map(async function (fmt) {
-                            const result = await checkUrl(urls[fmt.id], fmt.id);
-                            formats[fmt.id] = Object.assign({ url: urls[fmt.id] }, result);
-                            done += 1;
-                            if (onProgress) {
-                              onProgress(done, total, env.name, variant.path + ' · ' + rend.id);
-                            }
-                          })
-                        );
-                      }
-
-                      cache.envs[env.id].variants[variant.id].renditions[rend.id] = {
-                        meta: rend,
-                        formats: formats,
-                      };
-                    })
-                  );
-                })
+          let done = 0;
+          await mapPool(tasks, CHECK_CONCURRENCY, async function (task) {
+            const result = await checkUrl(task.url, task.fmt.id);
+            cache.variants[task.variantId].renditions[task.rend.id].formats[task.fmt.id] = Object.assign(
+              { url: task.url },
+              result
+            );
+            done += 1;
+            if (onProgress) {
+              onProgress(
+                done,
+                tasks.length,
+                env.name,
+                task.variantPath + ' · ' + task.rend.id + ' · ' + task.fmt.id
               );
-            })
-          );
+            }
+          });
 
           return cache;
         }
 
-        async function runCheck(id, variants, onProgress) {
+        async function runCheck(id, variants, env, onProgress) {
           const parsed = parseContentId(id);
           if (!parsed) {
             throw new Error(
               'Ungültige ID. Video: TV-YYYYMMDD-HHMM-NNNN (z. B. TV-20260522-1800-5711). ' +
-                'Audio: AU-YYYYMMDD-NNNN-NNNN (z. B. AU-20260522-0003-3300).'
+                'Audio: AU-YYYYMMDD-NNNN-NNNN (z. B. AU-20260205-1124-0000).'
             );
           }
           if (!variants || !variants.length) {
             throw new Error('Bitte mindestens eine Auslieferungsoption in der Kopfleiste wählen.');
           }
-          if (parsed.contentType === 'au') return runCheckAu(parsed, variants, onProgress);
-          return runCheckTv(parsed, variants, onProgress);
+          if (!env) {
+            throw new Error('Bitte eine Umgebung (Dev, Stage oder Prod) wählen.');
+          }
+          if (parsed.contentType === 'au') return runCheckAu(parsed, variants, env, onProgress);
+          return runCheckTv(parsed, variants, env, onProgress);
         }
 
         /* ---- UI ---- */
@@ -1361,7 +1510,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
         const results = document.getElementById('results');
         const matrixBody = document.getElementById('matrix-body');
         const fileNotice = document.getElementById('file-notice');
-        const envTabs = document.getElementById('env-tabs');
+        const envPicker = document.getElementById('env-picker');
         const envOriginHint = document.getElementById('env-origin-hint');
         const playerSection = document.getElementById('player-section');
         const playerHint = document.getElementById('player-hint');
@@ -1369,7 +1518,6 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
         const playerPathBox = document.getElementById('player-path-box');
 
         let checkCache = null;
-        let activeEnvId = 'dev';
         let selectedSlot = null;
 
         if (location.protocol === 'file:') fileNotice.hidden = false;
@@ -1404,16 +1552,13 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
           });
         }
 
-        envTabs.querySelectorAll('.env-tab').forEach(function (tab) {
-          tab.addEventListener('click', function () {
-            if (!checkCache || tab.disabled) return;
-            activeEnvId = tab.getAttribute('data-env');
-            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
-              t.classList.toggle('active', t === tab);
-            });
-            renderResults(checkCache, activeEnvId);
+        if (envPicker) {
+          envPicker.addEventListener('change', function () {
+            invalidateCheckOnFilterChange(
+              'Umgebung geändert – bitte Verfügbarkeit erneut prüfen.'
+            );
           });
-        });
+        }
 
         function setLoading(on) {
           searchBtn.disabled = on;
@@ -1432,7 +1577,6 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
         function renderSkeleton() {
           results.hidden = false;
           playerSection.hidden = true;
-          envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = true; });
           const parsed = parseContentId(tvidInput.value);
           const mode = parsed ? parsed.contentType : 'tv';
           const variants = getSelectedDeliveryVariants();
@@ -1528,7 +1672,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
             '</span>';
           btn.addEventListener('click', function () {
             selectedSlot = { rendId: rend.id, fmtId: fmt.id, variantId: variantId };
-            renderResults(checkCache, activeEnvId);
+            renderResults(checkCache);
             const variant = getDeliveryVariant(variantId);
             selectForPlayer(rend, fmt, info, variant);
           });
@@ -1564,11 +1708,11 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
           container.appendChild(full);
         }
 
-        function renderResults(cache, envId) {
-          const envData = cache.envs[envId];
-          if (!envData) return;
+        function renderResults(cache) {
+          if (!cache || !cache.env) return;
 
-          envOriginHint.textContent = 'Origin (' + envData.name + '): ' + envData.origin;
+          envOriginHint.textContent =
+            'Umgebung: ' + cache.env.name + '  •  Origin: ' + cache.env.origin;
 
           setMatrixLayout(cache.contentType);
           matrixBody.innerHTML = '';
@@ -1578,7 +1722,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
           if (cache.contentType === 'au') {
             variantIds.forEach(function (variantId) {
               const variant = getDeliveryVariant(variantId);
-              const block = envData.variants && envData.variants[variantId];
+              const block = cache.variants && cache.variants[variantId];
               if (!variant || !block) return;
 
               appendVariantRow(matrixBody, variant);
@@ -1601,7 +1745,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
 
           variantIds.forEach(function (variantId) {
             const variant = getDeliveryVariant(variantId);
-            const block = envData.variants && envData.variants[variantId];
+            const block = cache.variants && cache.variants[variantId];
             if (!variant || !block) return;
 
             appendVariantRow(matrixBody, variant);
@@ -1639,10 +1783,11 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
             showError('Bitte mindestens eine Auslieferungsoption in der Kopfleiste wählen.');
             return;
           }
+          const env = getSelectedEnvironment();
           setLoading(true);
           renderSkeleton();
           try {
-            checkCache = await runCheck(tvId, variants,
+            checkCache = await runCheck(tvId, variants, env,
               function (done, total, envName, rendId) {
                 btnText.textContent = 'Prüfe ' + envName + ' · ' + rendId + ' (' + done + '/' + total + ')';
               }
@@ -1653,18 +1798,17 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
                 'Audio-ID: ' +
                 checkCache.base +
                 '  •  ' +
+                env.name +
+                '  •  ' +
                 getActiveLra().label +
                 '  •  MP3  •  Verzeichnisse: ' +
-                pathLabel +
-                '  •  /{verzeichnis}/' +
-                checkCache.parsed.year +
-                '/' +
-                checkCache.parsed.monthDay +
-                '/';
+                pathLabel;
             } else {
               parseInfo.textContent =
                 'TV-ID: ' +
                 checkCache.base +
+                '  •  ' +
+                env.name +
                 '  •  ' +
                 getActiveLra().label +
                 '  •  ' +
@@ -1674,16 +1818,11 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
                 ' Verzeichnisse  •  ' +
                 pathLabel;
             }
-            envTabs.querySelectorAll('.env-tab').forEach(function (t) { t.disabled = false; });
-            activeEnvId = 'dev';
-            envTabs.querySelectorAll('.env-tab').forEach(function (t) {
-              t.classList.toggle('active', t.getAttribute('data-env') === activeEnvId);
-            });
             playerSection.hidden = false;
             playerHint.hidden = false;
             playerMeta.hidden = true;
             selectedSlot = null;
-            renderResults(checkCache, activeEnvId);
+            renderResults(checkCache);
           } catch (err) {
             results.hidden = true;
             playerSection.hidden = true;
@@ -1708,7 +1847,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
         let playerState = { type: null, url: null, title: null, available: false };
 
         function selectForPlayer(rend, fmt, info, variant) {
-          const envData = checkCache.envs[activeEnvId];
+          const envName = checkCache.env ? checkCache.env.name : '';
           const variantLabel = variant ? variant.label + ' (' + variant.path + '/) · ' : '';
           const title =
             variantLabel +
@@ -1718,7 +1857,7 @@ const LRA_CATALOG = {"version": "1.3", "source": "renditions.xlsx", "lras": {"nd
             ') – ' +
             fmt.label +
             ' – ' +
-            envData.name;
+            envName;
 
           playerHint.hidden = true;
           playerMeta.hidden = false;

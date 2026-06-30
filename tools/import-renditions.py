@@ -146,7 +146,7 @@ def main():
     renditions = parse_rows(rows)
 
     catalog = {
-        "version": "1.3",
+        "version": "1.4",
         "source": "renditions.xlsx",
         "lras": {
             "ndr": {

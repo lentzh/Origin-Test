@@ -1,56 +1,46 @@
 # Revisionshistorie – S3-Origin Verfügbarkeitscheck
 
+## Version 1.4
+
+**Stand:** Einzel-Umgebungswahl, stabilere Verfügbarkeitsprüfung
+
+### Änderungen
+
+- **Umgebungswahl vor der Prüfung:** Dev, Stage oder Prod (Radio-Buttons) – es wird nur die gewählte Umgebung geprüft
+- **Keine parallele 3×-Abfrage** mehr aller Origins (verhindert Hänger und Browser-Überlastung)
+- **Prüflogik überarbeitet:**
+  - Begrenzte Parallelität (`CHECK_CONCURRENCY = 5`)
+  - HLS/DASH: leichtgewichtiger Manifest-Abruf (kein hls.js/dash.js pro Zelle)
+  - MP3: dediziertes Audio-Element statt Video-Tag
+  - Fetch mit `AbortController` und festem Timeout (6 s)
+- Fortschrittsanzeige mit Zähler (erledigt/gesamt)
+
+### Bekannte Hinweise
+
+- „Nicht verfügbar“ bei vorhandenem S3-Inhalt kann an CORS, falscher Umgebung (Dev/Stage/Prod) oder falschem GEO-Verzeichnis liegen – jeweils passende Option wählen und erneut prüfen.
+
+---
+
 ## Version 1.3
 
 **Stand:** GEO-Auslieferungsverzeichnisse (Mehrfachauswahl)
 
-### Änderungen
-
-- **Drei Auslieferungsverzeichnisse** wählbar in der blauen Kopfleiste (Checkboxen, Mehrfachauswahl):
-  - `progressive/` – ohne GEO-Blocking
-  - `progressive_geo/` – mit GEO-Blocking
-  - `progressive_geo_dach/` – nur GEO-DACH
-- Prüfung und Matrix **je gewähltem Verzeichnis** (gruppierte Darstellung)
-- Player zeigt gewähltes Verzeichnis im Titel
-
-### Pfade (Beispiel)
-
-| Verzeichnis | MP4 |
-| --- | --- |
-| Ohne GEO | `{origin}/progressive/{Jahr}/{MonatTag}/{TV-ID}.{suffix}.mp4` |
-| GEO | `{origin}/progressive_geo/{Jahr}/{MonatTag}/{TV-ID}.{suffix}.mp4` |
-| GEO-DACH | `{origin}/progressive_geo_dach/{Jahr}/{MonatTag}/{TV-ID}.{suffix}.mp4` |
-
-HLS/DASH analog unter `/i/{verzeichnis}/…`, MP3 unter `/{verzeichnis}/…`.
+- `progressive/`, `progressive_geo/`, `progressive_geo_dach/` in der Kopfleiste
 
 ---
 
 ## Version 1.2
 
-**Stand:** Audio-IDs, Auslieferpfad `/progressive/`, GitLab-Repository
-
-### Änderungen
-
-- **Audio-IDs** (`AU-…`): nur MP3, vereinfachte Matrix, HTML5-Audio-Player
-- Auslieferpfad-Segment `progressive` (statt `ndr`)
-- `AGENTS.md`, GitLab-Projekt `origin-checker`
+- Audio-IDs (`AU-…`), Pfad `/progressive/`, GitLab `origin-checker`
 
 ---
 
 ## Version 1.1
 
-**Stand:** Renditions-Katalog **LRA NDR** aus aktualisierter `renditions.xlsx`
-
-### Änderungen
-
-- **21 Formate** aus der Excel-Tabelle (NDR)
-- **LRA-Modell:** Katalog unter `LRA_CATALOG.lras`
-- Import via `python3 tools/import-renditions.py`
+- Renditions-Katalog LRA NDR (21 Formate)
 
 ---
 
 ## Version 1.0
 
-**Stand:** Erste freigegebene Standalone-Version
-
-- TV-ID-Prüfung, Matrix Dev/Stage/Prod, separater Player
+- Erste Standalone-Version
