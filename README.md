@@ -33,9 +33,9 @@ Revisionshistorie: **[REVISIONS.md](REVISIONS.md)**
 
 | Umgebung | URL |
 | --- | --- |
-| Dev | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
-| Stage | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn-qs.de` |
-| Prod | `https://ndrprog.cloudfront-legacy.vodorig.ard-mcdn.de` |
+| Dev | `https://ndrprogdev.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
+| Stage | `https://ndrprogstage.cloudfront-legacy.vodorig.ard-mcdn-stage.de` |
+| Prod | `https://ndrprogprod.cloudfront-legacy.vodorig.ard-mcdn-prod.de` |
 
 ## Projektstruktur
 

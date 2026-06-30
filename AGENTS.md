@@ -52,6 +52,14 @@ cache = {
 
 `{origin}/{pathSegment}/{Jahr}/{MonatTag}/{ID}…`
 
+### Origin-URLs (V1.4+)
+
+| Umgebung | Host |
+| --- | --- |
+| Dev | `ndrprogdev.cloudfront-legacy.vodorig.ard-mcdn-dev.de` |
+| Stage | `ndrprogstage.cloudfront-legacy.vodorig.ard-mcdn-stage.de` |
+| Prod | `ndrprogprod.cloudfront-legacy.vodorig.ard-mcdn-prod.de` |
+
 ### Bei Releases anpassen
 
 UI-Version, `REVISIONS.md`, `README.md`, `AGENTS.md`, Katalog-`version` in `import-renditions.py`.

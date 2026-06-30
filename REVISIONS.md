@@ -14,6 +14,7 @@
   - MP3: dediziertes Audio-Element statt Video-Tag
   - Fetch mit `AbortController` und festem Timeout (6 s)
 - Fortschrittsanzeige mit Zähler (erledigt/gesamt)
+- **Origin-Hosts** je Umgebung: `ndrprogdev` / `ndrprogstage` / `ndrprogprod` (siehe README)
 
 ### Bekannte Hinweise
 
